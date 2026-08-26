@@ -269,7 +269,7 @@ export default function Overview({
                 </div>
                 <div className="flex gap-3 mt-2 text-[11px] text-[#737373]" style={MONO}>
                   <span>
-                    업무 {done}/{p.tasks.length}
+                    업무 {done}/{leaves.length}
                   </span>
                   <span>노트 {p.notes.length}</span>
                   <span>기록 {p.records.length}</span>
