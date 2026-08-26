@@ -95,20 +95,22 @@ export default function NotesTab({
               backgroundColor: note.pinnedAt ? project.colorBg : undefined,
             }}
             onClick={() => setExpanded(expanded === note.id ? null : note.id)}
+            title={expanded === note.id ? "클릭해서 접기" : "클릭해서 전체 보기"}
           >
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-semibold text-[#0f0f0f] leading-tight">
+                  <div className="text-[14px] font-semibold text-[#0f0f0f] leading-snug break-words">
                     {note.title}
                   </div>
                   {expanded === note.id ? (
-                    <div className="mt-2 text-[13px] text-[#4a4a4a] leading-relaxed whitespace-pre-wrap">
+                    <div className="mt-2 text-[13px] text-[#4a4a4a] leading-relaxed whitespace-pre-wrap break-words">
                       {note.body}
                     </div>
                   ) : (
                     note.body && (
-                      <div className="mt-1 text-[13px] text-[#737373] leading-tight truncate">
+                      // 접힌 상태에서는 두 줄까지만. 한 줄로 자르면 내용이 거의 안 보인다
+                      <div className="mt-1 text-[13px] text-[#737373] leading-snug line-clamp-2 break-words">
                         {note.body}
                       </div>
                     )
