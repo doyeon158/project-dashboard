@@ -7,36 +7,31 @@
   },
   "deadlines": [
     {
-      "id": "8ha6h97",
+      "id": "9b3mct0",
       "date": "2026-09-15",
       "label": "LLM 추론 서버 사내 배포"
     },
     {
-      "id": "y4zlp4h",
+      "id": "3ea7kam",
       "date": "2026-10-02",
       "label": "VLM 성능 검증 결과 보고"
     },
     {
-      "id": "o40mdqb",
+      "id": "fwlac68",
       "date": "2026-11-30",
       "label": "YOLO 실시간 탐지 시연"
     }
   ],
   "memos": [
     {
-      "id": "0pj0cw6",
+      "id": "vo63csk",
       "ts": "08. 25. 오후 03:12",
       "html": "Chunk overlap 조정 결과를 정리해서 다음 주간 회의 때 공유할 것."
-    },
-    {
-      "id": "l1nr52k",
-      "ts": "08. 24. 오전 10:40",
-      "html": "TensorRT 변환 시 batch size 고정이 필요한지 확인 후 기록에 반영."
     }
   ],
   "projects": [
     {
-      "id": "muo61d0",
+      "id": "9stli1p",
       "name": "LLM 프로젝트",
       "code": "LLM",
       "sub": "사내 문서 기반 RAG 질의응답",
@@ -65,23 +60,14 @@
         {
           "id": "codc3m1",
           "text": "한국어 응답 품질 및 도메인 질의 정확도 비교",
-          "status": "done",
-          "priority": "high",
-          "progress": 100,
-          "date": "2026-08-10",
-          "parentId": "7jp0a6y"
-        },
-        {
-          "id": "880ct1r",
-          "text": "GPU별 추론 속도 및 메모리 사용량 측정",
           "status": "wip",
-          "priority": "mid",
+          "priority": "high",
           "progress": 60,
           "date": "2026-08-10",
           "parentId": "7jp0a6y"
         },
         {
-          "id": "kavl1iw",
+          "id": "880ct1r",
           "text": "RAG 기반 질의응답 기능 개발",
           "status": "pending",
           "priority": "mid",
@@ -89,124 +75,62 @@
           "date": "2026-08-18"
         },
         {
-          "id": "g3yo6d5",
+          "id": "kavl1iw",
           "text": "문서 전처리 및 Chunking",
           "status": "done",
           "priority": "high",
           "progress": 100,
           "date": "2026-08-18",
-          "parentId": "kavl1iw"
+          "parentId": "880ct1r"
         },
         {
-          "id": "1m4z20j",
-          "text": "Embedding 및 Vector DB 구성",
-          "status": "wip",
-          "priority": "high",
-          "progress": 70,
-          "date": "2026-08-18",
-          "parentId": "kavl1iw"
-        },
-        {
-          "id": "pawpq3t",
+          "id": "g3yo6d5",
           "text": "검색 → Prompt → LLM 추론 Pipeline 구현",
           "status": "wip",
           "priority": "high",
           "progress": 40,
           "date": "2026-08-18",
-          "parentId": "kavl1iw"
-        },
-        {
-          "id": "m3o5g27",
-          "text": "LLM Inference Server 구축",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24"
-        },
-        {
-          "id": "95838mq",
-          "text": "vLLM 기반 추론 환경 구성",
-          "status": "wip",
-          "priority": "mid",
-          "progress": 30,
-          "date": "2026-08-24",
-          "parentId": "m3o5g27"
-        },
-        {
-          "id": "h264r69",
-          "text": "Docker 이미지 및 실행 환경 구성",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "m3o5g27"
-        },
-        {
-          "id": "cccsljn",
-          "text": "API 형태로 모델 호출 가능하도록 개발",
-          "status": "pending",
-          "priority": "low",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "m3o5g27"
+          "parentId": "880ct1r"
         }
       ],
       "notes": [
         {
-          "id": "4ytn0c1",
+          "id": "wmj8495",
           "title": "Qwen 계열이 한국어·기술용어에 안정적",
           "body": "Qwen 계열 모델이 한국어 질의 및 사내 기술용어 응답에서 상대적으로 안정적인 것으로 확인됨.",
           "date": "2026-08-10"
         },
         {
-          "id": "x1ej459",
+          "id": "fs22ffy",
           "title": "Chunk Size 확대의 장단점",
-          "body": "Chunk Size를 크게 설정할 경우 관련 문서가 함께 검색되지만 불필요한 정보가 증가하는 경향 확인.",
+          "body": "Chunk Size를 크게 설정하면 관련 문서가 함께 검색되지만 불필요한 정보도 늘어나는 경향 확인.",
           "date": "2026-08-18"
-        },
-        {
-          "id": "qf2qgur",
-          "title": "vLLM 동시 요청 처리 추가 테스트 필요",
-          "body": "vLLM 적용 시 기존 Transformers 직접 추론 대비 동시 요청 처리 성능 개선 가능성이 있어 추가 테스트 필요.",
-          "date": "2026-08-24"
         }
       ],
       "records": [
         {
-          "id": "a0i5ccv",
+          "id": "gwbmbwr",
           "label": "RAG 검색 Recall",
           "value": "Baseline 72% → Hybrid Search 84% → 목표 90%+",
           "date": "2026-08-18"
         },
         {
-          "id": "t9c9uz4",
-          "label": "LLM 답변 정확도",
-          "value": "RAG 미적용 68% → 적용 81% → Prompt 개선 86% → 목표 90%",
+          "id": "l9kgis5",
+          "label": "Inference Latency",
+          "value": "Transformers 2.8s → vLLM 1.6s (43% 감소)",
           "date": "2026-08-18"
         },
         {
-          "id": "rp269jv",
-          "label": "Inference Latency",
-          "value": "Transformers 2.8s → vLLM 1.6s (43% 감소)",
-          "date": "2026-08-24"
-        },
-        {
-          "id": "mhpaggu",
-          "label": "GPU Memory",
-          "value": "기존 18.2GB → vLLM 15.7GB (약 14% 감소)",
-          "date": "2026-08-24"
-        },
-        {
-          "id": "yvuzb6i",
+          "id": "4k9t6gz",
           "label": "",
           "value": "",
-          "text": "Hallucination: Baseline 17% → RAG + 근거 강제 Prompt 8% → 목표 5% 이하",
-          "date": "2026-08-24"
+          "text": "Hallucination: Baseline 17% → 근거 강제 Prompt 8% → 목표 5% 이하",
+          "date": "2026-08-18"
         }
       ]
     },
     {
-      "id": "1u6qsta",
+      "id": "b1wglo7",
       "name": "VLM 프로젝트",
       "code": "VLM",
       "sub": "이미지 기반 질의응답 · 현장 이미지 판독",
@@ -216,7 +140,7 @@
       "colorText": "#c84b31",
       "tasks": [
         {
-          "id": "yejr61o",
+          "id": "1m4z20j",
           "text": "VLM 모델 선정 및 추론 테스트",
           "status": "pending",
           "priority": "mid",
@@ -224,34 +148,25 @@
           "date": "2026-08-10"
         },
         {
-          "id": "30ug9bv",
+          "id": "pawpq3t",
           "text": "이미지 이해 및 OCR 성능 비교",
           "status": "done",
           "priority": "high",
           "progress": 100,
           "date": "2026-08-10",
-          "parentId": "yejr61o"
+          "parentId": "1m4z20j"
         },
         {
-          "id": "gc25oh4",
+          "id": "m3o5g27",
           "text": "이미지 해상도별 응답 품질 테스트",
-          "status": "done",
-          "priority": "mid",
-          "progress": 100,
-          "date": "2026-08-10",
-          "parentId": "yejr61o"
-        },
-        {
-          "id": "e37fuxq",
-          "text": "GPU Memory 및 Inference Latency 측정",
           "status": "wip",
           "priority": "mid",
           "progress": 50,
           "date": "2026-08-10",
-          "parentId": "yejr61o"
+          "parentId": "1m4z20j"
         },
         {
-          "id": "oi50noq",
+          "id": "95838mq",
           "text": "이미지 기반 질의응답 Pipeline 개발",
           "status": "pending",
           "priority": "mid",
@@ -259,125 +174,62 @@
           "date": "2026-08-18"
         },
         {
-          "id": "oth5ogu",
+          "id": "h264r69",
           "text": "이미지 입력 API 구현",
           "status": "wip",
           "priority": "high",
           "progress": 60,
           "date": "2026-08-18",
-          "parentId": "oi50noq"
+          "parentId": "95838mq"
         },
         {
-          "id": "9b3mct0",
+          "id": "cccsljn",
           "text": "Image + Text Prompt 구성",
-          "status": "wip",
-          "priority": "high",
-          "progress": 35,
-          "date": "2026-08-18",
-          "parentId": "oi50noq"
-        },
-        {
-          "id": "3ea7kam",
-          "text": "VLM 응답 결과 후처리",
           "status": "pending",
           "priority": "mid",
           "progress": 0,
           "date": "2026-08-18",
-          "parentId": "oi50noq"
-        },
-        {
-          "id": "fwlac68",
-          "text": "실제 업무 데이터 기반 성능 검증",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24"
-        },
-        {
-          "id": "vo63csk",
-          "text": "장비 이미지 및 문서 이미지 테스트셋 구축",
-          "status": "wip",
-          "priority": "mid",
-          "progress": 20,
-          "date": "2026-08-24",
-          "parentId": "fwlac68"
-        },
-        {
-          "id": "9stli1p",
-          "text": "정상/이상 이미지에 대한 응답 정확도 평가",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "fwlac68"
-        },
-        {
-          "id": "wmj8495",
-          "text": "오판 사례 분석 및 Prompt 개선",
-          "status": "pending",
-          "priority": "low",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "fwlac68"
+          "parentId": "95838mq"
         }
       ],
       "notes": [
         {
-          "id": "eyz5xxd",
+          "id": "ige9qmn",
           "title": "해상도와 자원 사용량의 상충",
-          "body": "이미지 Resolution을 높이면 세부 객체 인식은 개선되지만 GPU Memory 사용량과 추론시간이 증가함.",
+          "body": "Resolution을 높이면 세부 객체 인식은 개선되지만 GPU Memory 와 추론시간이 증가함.",
           "date": "2026-08-10"
         },
         {
-          "id": "iphu7yv",
-          "title": "ROI Crop이 판단 정확도에 유리",
-          "body": "이미지 전체를 입력하는 것보다 관심 영역을 Crop하여 전달했을 때 특정 객체에 대한 판단 정확도가 개선되는 경향 확인.",
+          "id": "asgpp2i",
+          "title": "ROI Crop 이 판단 정확도에 유리",
+          "body": "이미지 전체보다 관심 영역을 Crop 해 전달했을 때 특정 객체 판단 정확도가 개선되는 경향 확인.",
           "date": "2026-08-18"
-        },
-        {
-          "id": "4meiw22",
-          "title": "추측 억제 조건 추가 필요",
-          "body": "VLM이 이미지에 존재하지 않는 정보를 추론하는 사례가 있어 '이미지에서 확인되지 않는 정보는 추측하지 않음' 조건 추가 필요.",
-          "date": "2026-08-24"
         }
       ],
       "records": [
         {
-          "id": "2xwbzx0",
+          "id": "ot6ct18",
           "label": "객체 식별 정확도",
           "value": "Baseline 78% → ROI Crop 86% → 목표 90%+",
           "date": "2026-08-18"
         },
         {
-          "id": "fe72sbz",
+          "id": "qucta5k",
           "label": "이미지 분석 Latency",
           "value": "2,048px 3.1s → 1,024px 1.8s (약 42% 감소)",
           "date": "2026-08-18"
         },
         {
-          "id": "v8pbcik",
-          "label": "GPU Memory",
-          "value": "2,048px 21.4GB → 1,024px 14.8GB (약 31% 감소)",
-          "date": "2026-08-18"
-        },
-        {
-          "id": "3kt6dco",
+          "id": "9x1kjm7",
           "label": "",
           "value": "",
           "text": "저조도 이미지 정확도: 일반 91% → 저조도 74% (17%p 차이)",
-          "date": "2026-08-24"
-        },
-        {
-          "id": "wkfc5mt",
-          "label": "",
-          "value": "",
-          "text": "Hallucination 발생률: 일반 Prompt 13% → 이미지 근거 강제 6% → 목표 3% 이하",
-          "date": "2026-08-24"
+          "date": "2026-08-18"
         }
       ]
     },
     {
-      "id": "hsm47no",
+      "id": "ctavtnt",
       "name": "YOLO 프로젝트",
       "code": "YOL",
       "sub": "현장 CCTV 실시간 객체 탐지",
@@ -387,7 +239,7 @@
       "colorText": "#2a7a4b",
       "tasks": [
         {
-          "id": "fs22ffy",
+          "id": "yejr61o",
           "text": "객체 탐지 Dataset 구축",
           "status": "pending",
           "priority": "mid",
@@ -395,34 +247,25 @@
           "date": "2026-08-10"
         },
         {
-          "id": "gwbmbwr",
+          "id": "30ug9bv",
           "text": "실제 현장 영상에서 이미지 Frame 추출",
           "status": "done",
           "priority": "high",
           "progress": 100,
           "date": "2026-08-10",
-          "parentId": "fs22ffy"
+          "parentId": "yejr61o"
         },
         {
-          "id": "l9kgis5",
+          "id": "gc25oh4",
           "text": "객체별 Annotation 수행",
           "status": "done",
           "priority": "high",
           "progress": 100,
           "date": "2026-08-10",
-          "parentId": "fs22ffy"
+          "parentId": "yejr61o"
         },
         {
-          "id": "4k9t6gz",
-          "text": "Train / Validation / Test Dataset 구성",
-          "status": "done",
-          "priority": "mid",
-          "progress": 100,
-          "date": "2026-08-10",
-          "parentId": "fs22ffy"
-        },
-        {
-          "id": "b1wglo7",
+          "id": "e37fuxq",
           "text": "YOLO 모델 학습 및 성능 튜닝",
           "status": "pending",
           "priority": "mid",
@@ -430,126 +273,57 @@
           "date": "2026-08-18"
         },
         {
-          "id": "ige9qmn",
-          "text": "Image Size / Batch Size / Epoch 설정",
-          "status": "done",
-          "priority": "mid",
-          "progress": 100,
-          "date": "2026-08-18",
-          "parentId": "b1wglo7"
-        },
-        {
-          "id": "asgpp2i",
+          "id": "oi50noq",
           "text": "Confidence Threshold 조정",
           "status": "wip",
           "priority": "high",
           "progress": 80,
           "date": "2026-08-18",
-          "parentId": "b1wglo7"
+          "parentId": "e37fuxq"
         },
         {
-          "id": "ot6ct18",
+          "id": "oth5ogu",
           "text": "Precision / Recall / mAP 기반 성능 평가",
           "status": "wip",
-          "priority": "high",
+          "priority": "mid",
           "progress": 55,
           "date": "2026-08-18",
-          "parentId": "b1wglo7"
-        },
-        {
-          "id": "qucta5k",
-          "text": "실시간 Detection 환경 구축",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24"
-        },
-        {
-          "id": "9x1kjm7",
-          "text": "CCTV/Camera 영상 입력 연동",
-          "status": "wip",
-          "priority": "high",
-          "progress": 40,
-          "date": "2026-08-24",
-          "parentId": "qucta5k"
-        },
-        {
-          "id": "ctavtnt",
-          "text": "YOLO Inference Pipeline 구현",
-          "status": "pending",
-          "priority": "mid",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "qucta5k"
-        },
-        {
-          "id": "jbdolxv",
-          "text": "Detection 결과 저장 및 이벤트 발생 기능 구현",
-          "status": "pending",
-          "priority": "low",
-          "progress": 0,
-          "date": "2026-08-24",
-          "parentId": "qucta5k"
+          "parentId": "e37fuxq"
         }
       ],
       "notes": [
         {
-          "id": "qxczh17",
+          "id": "jbdolxv",
           "title": "특정 Class 학습 데이터 부족",
-          "body": "특정 객체의 학습 데이터가 부족하여 해당 Class의 Recall이 상대적으로 낮게 나타남.",
+          "body": "특정 객체의 학습 데이터가 부족해 해당 Class 의 Recall 이 상대적으로 낮게 나타남.",
           "date": "2026-08-10"
         },
         {
-          "id": "dzca4cl",
+          "id": "8ha6h97",
           "title": "조명 반사·야간에서 오탐 증가",
-          "body": "현장 조명 반사 및 야간 환경에서 False Positive가 증가하는 현상 확인.",
+          "body": "현장 조명 반사 및 야간 환경에서 False Positive 가 증가하는 현상 확인.",
           "date": "2026-08-18"
-        },
-        {
-          "id": "pbia6z1",
-          "title": "Threshold 상충 관계",
-          "body": "Confidence Threshold를 높이면 오탐은 감소하지만 작은 객체의 미검출이 증가하여 적정 Threshold 탐색 필요.",
-          "date": "2026-08-24"
         }
       ],
       "records": [
         {
-          "id": "ckaduuk",
+          "id": "y4zlp4h",
           "label": "mAP50",
-          "value": "Baseline 86.2% → Augmentation 91.4% → 현재 93.1% → 목표 95%+",
+          "value": "Baseline 86.2% → Augmentation 91.4% → 현재 93.1%",
           "date": "2026-08-18"
         },
         {
-          "id": "mv0xz1v",
+          "id": "o40mdqb",
           "label": "Precision",
           "value": "89.7% → Threshold 튜닝 후 94.2% (+4.5%p)",
           "date": "2026-08-18"
         },
         {
-          "id": "yjrvsll",
-          "label": "Recall",
-          "value": "91.3% → Threshold 0.5→0.6 적용 후 87.8% (-3.5%p)",
+          "id": "0pj0cw6",
+          "label": "",
+          "value": "",
+          "text": "실시간 추론 속도: 18 FPS → TensorRT 최적화 31 FPS (약 72% 향상)",
           "date": "2026-08-18"
-        },
-        {
-          "id": "nn7c1wp",
-          "label": "Small Object Recall",
-          "value": "Image Size 640 68% → 960 79% (+11%p)",
-          "date": "2026-08-24"
-        },
-        {
-          "id": "auh2fjv",
-          "label": "",
-          "value": "",
-          "text": "실시간 추론 속도: 기존 18 FPS → TensorRT 최적화 31 FPS (약 72% 향상)",
-          "date": "2026-08-24"
-        },
-        {
-          "id": "3tmi7q2",
-          "label": "",
-          "value": "",
-          "text": "False Positive: 8.4% → 조명 보정 + Threshold 조정 4.9% (약 42% 감소)",
-          "date": "2026-08-24"
         }
       ]
     }
