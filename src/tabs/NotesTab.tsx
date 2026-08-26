@@ -111,35 +111,15 @@ export default function NotesTab({
             title={isOpen(note.id) ? "클릭해서 접기" : "클릭해서 전체 보기"}
           >
             <div className="px-5 py-4">
+              {/* 윗줄은 제목과 버튼들. 본문은 그 아래에서 카드 폭을 다 쓴다 */}
               <div className="flex items-start justify-between gap-4">
-                {/* 제목·본문 클릭은 수정이므로 카드의 펼치기/접기로 번지지 않게 막는다 */}
+                {/* 제목 클릭은 수정이므로 카드의 펼치기/접기로 번지지 않게 막는다 */}
                 <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
                   <Editable
                     value={note.title}
                     onCommit={(v) => patch({ notes: notes.map((n) => (n.id === note.id ? { ...n, title: v } : n)) })}
                     className="block text-[14px] font-semibold text-[#0f0f0f] leading-snug break-words"
                   />
-                  {isOpen(note.id) ? (
-                    <div className="mt-2">
-                      <Editable
-                        multiline
-                        value={note.body}
-                        placeholder="내용 입력"
-                        onCommit={(v) => patch({ notes: notes.map((n) => (n.id === note.id ? { ...n, body: v } : n)) })}
-                        className="block text-[13px] text-[#4a4a4a] leading-relaxed whitespace-pre-wrap break-words"
-                      />
-                    </div>
-                  ) : (
-                    note.body && (
-                      // 접혀도 줄바꿈은 그대로 두고 세 줄까지만 보여준다
-                      <div
-                        className="mt-1 text-[13px] text-[#737373] leading-snug whitespace-pre-wrap break-words line-clamp-3 cursor-pointer"
-                        onClick={() => toggle(note.id, true)}
-                      >
-                        {note.body}
-                      </div>
-                    )
-                  )}
                 </div>
                 <div className="flex items-center gap-2.5 flex-shrink-0">
                   {note.body && (
@@ -173,6 +153,28 @@ export default function NotesTab({
                   />
                 </div>
               </div>
+
+              {isOpen(note.id) ? (
+                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                  <Editable
+                    multiline
+                    value={note.body}
+                    placeholder="내용 입력"
+                    onCommit={(v) => patch({ notes: notes.map((n) => (n.id === note.id ? { ...n, body: v } : n)) })}
+                    className="block text-[13px] text-[#4a4a4a] leading-relaxed whitespace-pre-wrap break-words"
+                  />
+                </div>
+              ) : (
+                note.body && (
+                  // 접혀도 줄바꿈은 그대로 두고 세 줄까지만 보여준다
+                  <div
+                    className="mt-1 text-[13px] text-[#737373] leading-snug whitespace-pre-wrap break-words line-clamp-3"
+                    onClick={() => toggle(note.id, true)}
+                  >
+                    {note.body}
+                  </div>
+                )
+              )}
             </div>
             {isOpen(note.id) && (
               <div className="h-1 w-full" style={{ backgroundColor: project.color, opacity: 0.6 }} />
