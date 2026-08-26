@@ -72,6 +72,9 @@ export default function App() {
         status={status}
         onSelect={setView}
         onAddProject={addProject}
+        onPatchProfile={(p) =>
+          update((s) => ({ ...s, profile: { ...s.profile, ...p } }))
+        }
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">

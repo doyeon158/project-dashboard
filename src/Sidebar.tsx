@@ -1,6 +1,7 @@
+import Editable from "./Editable";
 import { MONO, SaveBadge } from "./ui";
 import type { SaveStatus } from "./store";
-import type { State } from "./types";
+import type { Profile, State } from "./types";
 import { leafTasks, overall, today } from "./types";
 
 /** 왼쪽 사이드바 — 한눈에 보기 / 프로젝트 목록 / 프로필·저장 상태 */
@@ -10,12 +11,14 @@ export default function Sidebar({
   status,
   onSelect,
   onAddProject,
+  onPatchProfile,
 }: {
   state: State;
   view: string | null;
   status: SaveStatus;
   onSelect: (view: string | null) => void;
   onAddProject: () => void;
+  onPatchProfile: (p: Partial<Profile>) => void;
 }) {
   return (
     <aside className="w-[220px] min-w-[220px] border-r border-[#e5e5e3] flex flex-col bg-[#f9f9f7]">
@@ -103,8 +106,18 @@ export default function Sidebar({
       </nav>
 
       <div className="px-5 py-4 border-t border-[#e5e5e3]">
-        <div className="text-[12.5px] font-semibold text-[#0f0f0f]">{state.profile.name}</div>
-        {state.profile.team && <div className="text-[11px] text-[#737373]">{state.profile.team}</div>}
+        <Editable
+          value={state.profile.name}
+          placeholder="이름"
+          onCommit={(v) => onPatchProfile({ name: v })}
+          className="block text-[12.5px] font-semibold text-[#0f0f0f]"
+        />
+        <Editable
+          value={state.profile.team}
+          placeholder="소속"
+          onCommit={(v) => onPatchProfile({ team: v })}
+          className="block text-[11px] text-[#737373]"
+        />
         <div className="mt-1.5 flex items-center gap-2">
           <span className="text-[11px] text-[#aaaaaa]" style={MONO}>
             {today()}
