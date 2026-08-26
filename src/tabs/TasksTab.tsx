@@ -331,7 +331,7 @@ function TaskRow({
       <button
         onClick={onCycle}
         title={`상태 변경 (현재: ${STATUS_LABEL[task.status]})`}
-        className="w-4 h-4 border flex-shrink-0 flex items-center justify-center transition-colors"
+        className="relative w-4 h-4 border flex-shrink-0 flex items-center justify-center transition-colors before:absolute before:-inset-2 before:content-['']"
         style={{
           borderRadius: RADIUS,
           backgroundColor: done ? accentColor : "transparent",
@@ -364,7 +364,7 @@ function TaskRow({
 
       <button
         onClick={onCycle}
-        className="text-[10.5px] font-semibold w-8 text-center flex-shrink-0"
+        className="text-[10.5px] font-semibold w-8 text-center flex-shrink-0 py-2 -my-2"
         style={{ ...MONO, color: STATUS_COLOR[task.status] }}
       >
         {STATUS_LABEL[task.status]}
@@ -375,7 +375,7 @@ function TaskRow({
           onPriority(task.priority === "high" ? "mid" : task.priority === "mid" ? "low" : "high")
         }
         title="우선순위 변경"
-        className="text-[10.5px] font-semibold w-9 text-center flex-shrink-0"
+        className="text-[10.5px] font-semibold w-9 text-center flex-shrink-0 py-2 -my-2"
         style={{ ...MONO, color: PRIORITY_COLOR[task.priority] }}
       >
         {PRIORITY_LABEL[task.priority]}

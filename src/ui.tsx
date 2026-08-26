@@ -114,7 +114,8 @@ export function DeleteX({
     <button
       onClick={onClick}
       title={title}
-      className={`text-[12px] text-[#ccccca] hover:text-[#c84b31] transition-colors w-4 ${
+      // before:-inset-2 로 보이는 크기는 그대로 두고 누를 수 있는 범위만 넓힌다
+      className={`relative text-[13px] text-[#ccccca] hover:text-[#c84b31] transition-colors w-4 before:absolute before:-inset-2 before:content-[''] ${
         always ? "" : "opacity-0 group-hover:opacity-100"
       }`}
     >
@@ -138,7 +139,7 @@ export function PinButton({
       onClick={onClick}
       title={pinned ? "고정 해제" : "최상단에 고정"}
       aria-label={pinned ? "고정 해제" : "최상단에 고정"}
-      className={`flex items-center justify-center w-4 h-4 transition-colors ${
+      className={`relative flex items-center justify-center w-4 h-4 transition-colors before:absolute before:-inset-2 before:content-[''] ${
         pinned ? "" : "text-[#ccccca] hover:text-[#0f0f0f]"
       }`}
       style={pinned ? { color: accentColor } : undefined}

@@ -136,7 +136,7 @@ export default function NotesTab({
                         e.stopPropagation();
                         setExpanded(expanded === note.id ? null : note.id);
                       }}
-                      className="text-[11.5px] text-[#aaaaaa] hover:text-[#0f0f0f] transition-colors"
+                      className="text-[11.5px] text-[#aaaaaa] hover:text-[#0f0f0f] transition-colors px-1.5 py-1 -my-1"
                     >
                       {expanded === note.id ? "접기" : "전체 보기"}
                     </button>

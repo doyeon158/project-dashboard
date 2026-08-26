@@ -128,7 +128,7 @@ export default function Sidebar({
         <button
           onClick={onToggleCollapsed}
           title="사이드바 접기"
-          className="text-[#ccccca] hover:text-[#0f0f0f] transition-colors mt-0.5"
+          className="text-[#ccccca] hover:text-[#0f0f0f] transition-colors -mt-1 -mr-2 p-2"
         >
           <Chevron dir="left" />
         </button>
