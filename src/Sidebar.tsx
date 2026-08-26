@@ -1,0 +1,117 @@
+import { MONO, SaveBadge } from "./ui";
+import type { SaveStatus } from "./store";
+import type { State } from "./types";
+import { leafTasks, overall, today } from "./types";
+
+/** 왼쪽 사이드바 — 한눈에 보기 / 프로젝트 목록 / 프로필·저장 상태 */
+export default function Sidebar({
+  state,
+  view,
+  status,
+  onSelect,
+  onAddProject,
+}: {
+  state: State;
+  view: string | null;
+  status: SaveStatus;
+  onSelect: (view: string | null) => void;
+  onAddProject: () => void;
+}) {
+  return (
+    <aside className="w-[220px] min-w-[220px] border-r border-[#e5e5e3] flex flex-col bg-[#f9f9f7]">
+      <div className="px-5 py-5 border-b border-[#e5e5e3]">
+        <div className="text-[11px] font-semibold tracking-[0.15em] text-[#737373] uppercase">
+          Workspace
+        </div>
+        <div className="text-[15px] font-semibold text-[#0f0f0f] mt-0.5 leading-tight">
+          내 프로젝트
+        </div>
+      </div>
+
+      <nav className="flex-1 py-3 overflow-y-auto">
+        <button
+          onClick={() => onSelect(null)}
+          className={`w-full text-left px-4 py-2.5 transition-colors ${
+            view === null ? "bg-white border-r-2 border-r-[#0f0f0f]" : "hover:bg-white/60"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <svg width="11" height="11" viewBox="0 0 11 11" className="flex-shrink-0">
+              <rect x="0" y="0" width="4.5" height="4.5" fill="#0f0f0f" />
+              <rect x="6.5" y="0" width="4.5" height="4.5" fill="#c0c0be" />
+              <rect x="0" y="6.5" width="4.5" height="4.5" fill="#c0c0be" />
+              <rect x="6.5" y="6.5" width="4.5" height="4.5" fill="#0f0f0f" />
+            </svg>
+            <span
+              className={`text-[13.5px] font-medium ${
+                view === null ? "text-[#0f0f0f]" : "text-[#4a4a4a]"
+              }`}
+            >
+              한눈에 보기
+            </span>
+          </div>
+        </button>
+
+        <div className="mt-3 mb-1 px-4 text-[10.5px] font-semibold tracking-[0.15em] text-[#aaaaaa] uppercase">
+          프로젝트
+        </div>
+
+        {state.projects.map((p) => {
+          const isActive = view === p.id;
+          const leaves = leafTasks(p.tasks);
+          const done = leaves.filter((t) => t.status === "done").length;
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p.id)}
+              className={`w-full text-left px-4 py-3 transition-colors ${
+                isActive ? "bg-white border-r-2" : "hover:bg-white/60"
+              }`}
+              style={isActive ? { borderRightColor: p.color } : {}}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: p.color }}
+                />
+                <span
+                  className={`text-[13.5px] font-medium leading-tight truncate ${
+                    isActive ? "text-[#0f0f0f]" : "text-[#4a4a4a]"
+                  }`}
+                >
+                  {p.name}
+                </span>
+              </div>
+              <div className="mt-1.5 ml-[18px] flex items-center gap-3">
+                <span className="text-[11px] text-[#737373]" style={MONO}>
+                  {overall(p)}%
+                </span>
+                <span className="text-[11px] text-[#737373]" style={MONO}>
+                  {done}/{leaves.length} 완료
+                </span>
+              </div>
+            </button>
+          );
+        })}
+
+        <button
+          onClick={onAddProject}
+          className="w-full text-left px-4 py-2.5 mt-1 text-[12.5px] text-[#737373] hover:text-[#0f0f0f] hover:bg-white/60 transition-colors"
+        >
+          + 프로젝트 추가
+        </button>
+      </nav>
+
+      <div className="px-5 py-4 border-t border-[#e5e5e3]">
+        <div className="text-[12.5px] font-semibold text-[#0f0f0f]">{state.profile.name}</div>
+        {state.profile.team && <div className="text-[11px] text-[#737373]">{state.profile.team}</div>}
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="text-[11px] text-[#aaaaaa]" style={MONO}>
+            {today()}
+          </span>
+          <SaveBadge status={status} />
+        </div>
+      </div>
+    </aside>
+  );
+}

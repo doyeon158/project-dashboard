@@ -1,0 +1,8 @@
+# 줄바꿈 정책만 정한다 (Figma 가 넣어둔 Git LFS 규칙은 쓰지 않는다).
+* text=auto
+
+# Windows 전용 실행 파일은 CRLF 로 받아야 안전하다.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.ico binary

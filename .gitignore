@@ -1,0 +1,24 @@
+# 내 실제 대시보드 데이터와 자동 백업 — 깃에 올리지 않는다.
+# 처음 실행하면 data.sample/dashboard-data.json 을 복사해 새로 만들어진다.
+data/
+
+node_modules/
+dist/
+build/
+.cache/
+.env*
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
+logs/
+*.log
+.claude-replay.*
+.tmp-*
+
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/
