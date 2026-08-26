@@ -158,8 +158,8 @@ export function PinButton({
   );
 }
 
-/** 사이드바 아래의 저장 상태 표시 */
-export function SaveBadge({ status }: { status: SaveStatus }) {
+/** 사이드바 아래의 저장 상태 표시. dotOnly 는 접힌 사이드바용(점만) */
+export function SaveBadge({ status, dotOnly = false }: { status: SaveStatus; dotOnly?: boolean }) {
   const map: Record<SaveStatus, { text: string; color: string; hint?: string }> = {
     loading: { text: "불러오는 중", color: "#aaaaaa" },
     saving: { text: "저장 중…", color: "#d97706" },
@@ -172,6 +172,15 @@ export function SaveBadge({ status }: { status: SaveStatus }) {
     },
   };
   const s = map[status];
+  if (dotOnly) {
+    return (
+      <span
+        className="w-1.5 h-1.5 rounded-full inline-block"
+        style={{ backgroundColor: s.color }}
+        title={s.hint ? `${s.text} — ${s.hint}` : s.text}
+      />
+    );
+  }
   return (
     <span
       className="inline-flex items-center gap-1 text-[11px]"

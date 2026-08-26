@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Overview from "./Overview";
 import ProjectHeader, { type TabKey } from "./ProjectHeader";
 import Sidebar from "./Sidebar";
@@ -10,6 +10,8 @@ import { MONO } from "./ui";
 import type { Project } from "./types";
 import { PALETTE, today, uid } from "./types";
 
+const SIDEBAR_KEY = "project-dashboard-sidebar-collapsed";
+
 /**
  * 화면 구성과 상태 보관만 담당한다.
  * 항목별 편집 로직은 각 탭 컴포넌트(TasksTab / NotesTab / RecordsTab)에 있다.
@@ -20,6 +22,22 @@ export default function App() {
   // null = 한눈에 보기, 그 외에는 프로젝트 id
   const [view, setView] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("tasks");
+  // 사이드바 접힘은 화면 취향이라 데이터 파일이 아니라 브라우저에 기억한다
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0");
+    } catch {
+      // 사생활 보호 모드 등에서 저장이 막혀도 동작에는 문제 없다
+    }
+  }, [collapsed]);
 
   if (!state) {
     return (
@@ -70,6 +88,8 @@ export default function App() {
         state={state}
         view={view}
         status={status}
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((v) => !v)}
         onSelect={setView}
         onAddProject={addProject}
         onPatchProfile={(p) =>
