@@ -14,7 +14,8 @@ export default function NotesTab({
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // 노트는 서로 독립적으로 펼친다. 하나를 열어도 다른 노트가 접히지 않는다
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -22,6 +23,17 @@ export default function NotesTab({
   }, [adding]);
 
   const notes = project.notes;
+  const isOpen = (id: string) => openIds.has(id);
+
+  function toggle(id: string, open?: boolean) {
+    setOpenIds((cur) => {
+      const next = new Set(cur);
+      const want = open ?? !next.has(id);
+      if (want) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
 
   function submit() {
     if (!draft.title.trim()) return;
@@ -38,7 +50,7 @@ export default function NotesTab({
 
   function remove(id: string) {
     patch({ notes: notes.filter((n) => n.id !== id) });
-    if (expanded === id) setExpanded(null);
+    toggle(id, false);
   }
 
   function togglePin(id: string) {
@@ -95,8 +107,8 @@ export default function NotesTab({
               borderColor: note.pinnedAt ? project.color : "#e5e5e3",
               backgroundColor: note.pinnedAt ? project.colorBg : undefined,
             }}
-            onClick={() => setExpanded(expanded === note.id ? null : note.id)}
-            title={expanded === note.id ? "클릭해서 접기" : "클릭해서 전체 보기"}
+            onClick={() => toggle(note.id)}
+            title={isOpen(note.id) ? "클릭해서 접기" : "클릭해서 전체 보기"}
           >
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-4">
@@ -107,7 +119,7 @@ export default function NotesTab({
                     onCommit={(v) => patch({ notes: notes.map((n) => (n.id === note.id ? { ...n, title: v } : n)) })}
                     className="block text-[14px] font-semibold text-[#0f0f0f] leading-snug break-words"
                   />
-                  {expanded === note.id ? (
+                  {isOpen(note.id) ? (
                     <div className="mt-2">
                       <Editable
                         multiline
@@ -122,7 +134,7 @@ export default function NotesTab({
                       // 접혀도 줄바꿈은 그대로 두고 세 줄까지만 보여준다
                       <div
                         className="mt-1 text-[13px] text-[#737373] leading-snug whitespace-pre-wrap break-words line-clamp-3 cursor-pointer"
-                        onClick={() => setExpanded(note.id)}
+                        onClick={() => toggle(note.id, true)}
                       >
                         {note.body}
                       </div>
@@ -134,11 +146,11 @@ export default function NotesTab({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setExpanded(expanded === note.id ? null : note.id);
+                        toggle(note.id);
                       }}
                       className="text-[11.5px] text-[#aaaaaa] hover:text-[#0f0f0f] transition-colors px-1.5 py-1 -my-1"
                     >
-                      {expanded === note.id ? "접기" : "전체 보기"}
+                      {isOpen(note.id) ? "접기" : "전체 보기"}
                     </button>
                   )}
                   <span className="text-[11px] text-[#aaaaaa]" style={MONO}>
@@ -162,7 +174,7 @@ export default function NotesTab({
                 </div>
               </div>
             </div>
-            {expanded === note.id && (
+            {isOpen(note.id) && (
               <div className="h-1 w-full" style={{ backgroundColor: project.color, opacity: 0.6 }} />
             )}
           </div>
