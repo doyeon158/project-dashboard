@@ -9,6 +9,7 @@ import {
   STATUS_LABEL,
   dday,
   ddayLabel,
+  doneStamp,
   escapeHtml,
   leafTasks,
   overall,
@@ -122,7 +123,7 @@ export default function Overview({
           : {
               ...p,
               tasks: p.tasks.map((t) =>
-                t.id !== taskId ? t : { ...t, status: "done", progress: 100 },
+                t.id !== taskId ? t : { ...t, status: "done", progress: 100, ...doneStamp("done") },
               ),
             },
       ),

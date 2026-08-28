@@ -10,11 +10,15 @@ import {
   STATUS_NEXT,
   childrenOf,
   clampPct,
+  doneStamp,
+  groupDoneDay,
+  groupPriority,
   groupProgress,
   groupStatus,
   hasChildren,
   leafTasks,
   parseOutline,
+  sortTasks,
   today,
   uid,
 } from "../types";
@@ -31,6 +35,9 @@ export default function TasksTab({
   const [draft, setDraft] = useState({ text: "", priority: "mid" as Task["priority"] });
   const [addingSubFor, setAddingSubFor] = useState<string | null>(null);
   const [subText, setSubText] = useState("");
+  // 완료된 하위 업무를 펼쳐 둔 대주제들
+  const [openDoneFor, setOpenDoneFor] = useState<Set<string>>(new Set());
+  const [showDoneTops, setShowDoneTops] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -40,6 +47,15 @@ export default function TasksTab({
   const tasks = project.tasks;
   const leaves = leafTasks(tasks);
   const doneCount = leaves.filter((t) => t.status === "done").length;
+
+  function toggleDone(parentId: string) {
+    setOpenDoneFor((cur) => {
+      const next = new Set(cur);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  }
 
   function patchTask(taskId: string, p: Partial<Task>) {
     patch({ tasks: tasks.map((t) => (t.id === taskId ? { ...t, ...p } : t)) });
@@ -94,14 +110,14 @@ export default function TasksTab({
     const next: Status = STATUS_NEXT[t.status];
     const progress =
       next === "done" ? 100 : next === "pending" ? 0 : t.progress === 100 ? 50 : t.progress;
-    patchTask(t.id, { status: next, progress });
+    patchTask(t.id, { status: next, progress, ...doneStamp(next) });
   }
 
   function setProgress(t: Task, raw: string) {
     const v = clampPct(raw);
     const status: Status =
       v >= 100 ? "done" : v > 0 ? "wip" : t.status === "done" ? "wip" : t.status;
-    patchTask(t.id, { progress: v, status });
+    patchTask(t.id, { progress: v, status, ...doneStamp(status) });
   }
 
   /** 대주제를 지우면 하위 업무도 함께 */
@@ -120,15 +136,28 @@ export default function TasksTab({
     onDelete: () => patch({ tasks: tasks.filter((t) => t.id !== task.id) }),
   });
 
-  const tops = tasks.filter((t) => !t.parentId);
-  const doneRank = (t: Task) =>
+  // 대주제는 하위 업무가 다 끝나야 완료. 완료된 것은 목록에서 접어 둔다.
+  const isDone = (t: Task) =>
+    hasChildren(tasks, t.id) ? groupStatus(tasks, t.id) === "done" : t.status === "done";
+
+  // 대주제의 진행률·중요도·완료일은 하위 업무에서 끌어와 정렬에 쓴다
+  const forSort = (t: Task): Task =>
     hasChildren(tasks, t.id)
-      ? groupStatus(tasks, t.id) === "done"
-        ? 1
-        : 0
-      : t.status === "done"
-        ? 1
-        : 0;
+      ? {
+          ...t,
+          progress: groupProgress(tasks, t.id),
+          status: groupStatus(tasks, t.id),
+          priority: groupPriority(tasks, t.id),
+          doneAt: groupDoneDay(tasks, t.id),
+        }
+      : t;
+
+  const tops = tasks.filter((t) => !t.parentId);
+  const byId = new Map(tops.map((t) => [t.id, t]));
+  const revive = (list: Task[]) => list.map((t) => byId.get(t.id)!);
+
+  const openTops = revive(sortTasks(tops.filter((t) => !isDone(t)).map(forSort), false));
+  const doneTops = revive(sortTasks(tops.filter(isDone).map(forSort), true));
 
   return (
     <div className="px-8 py-6 max-w-3xl">
@@ -205,20 +234,39 @@ export default function TasksTab({
         <div className="text-[13px] text-[#aaaaaa] py-12 text-center">아직 업무가 없습니다.</div>
       )}
 
-      {[...tops]
-        .sort((a, b) => doneRank(a) - doneRank(b))
-        .map((top) => {
+      {tasks.length > 0 && openTops.length === 0 && (
+        <div className="text-[13px] text-[#aaaaaa] py-10 text-center">
+          미완료 업무가 없습니다. 완료한 업무는 아래에서 펼쳐 볼 수 있습니다.
+        </div>
+      )}
+
+      {openTops.map(renderTop)}
+
+      {/* 완료된 대주제·단독 업무는 아래에 접어 둔다 */}
+      {doneTops.length > 0 && (
+        <div className="mt-4 pt-2 border-t border-[#f0f0ee]">
+          <button
+            onClick={() => setShowDoneTops((v) => !v)}
+            className="text-[11.5px] text-[#aaaaaa] hover:text-[#0f0f0f] transition-colors py-1.5 pr-4"
+          >
+            {showDoneTops ? `완료 ${doneTops.length}건 접기` : `완료 ${doneTops.length}건 펼치기`}
+          </button>
+          {showDoneTops && <div className="mt-1 opacity-70">{doneTops.map(renderTop)}</div>}
+        </div>
+      )}
+    </div>
+  );
+
+  function renderTop(top: Task) {
           const kids = childrenOf(tasks, top.id);
           if (!kids.length) return <TaskRow key={top.id} {...rowProps(top)} />;
 
           const gp = groupProgress(tasks, top.id);
           const gs = groupStatus(tasks, top.id);
-          const kidsDone = kids.filter((t) => t.status === "done").length;
-          const sorted = [...kids].sort(
-            (a, b) =>
-              (a.status === "done" ? 1 : 0) - (b.status === "done" ? 1 : 0) ||
-              a.progress - b.progress,
-          );
+          const openKids = sortTasks(kids.filter((t) => t.status !== "done"), false);
+          const doneKids = sortTasks(kids.filter((t) => t.status === "done"), true);
+          const kidsDone = doneKids.length;
+          const showDone = openDoneFor.has(top.id);
           return (
             <div key={top.id} className="mb-4">
               {/* 대주제 */}
@@ -245,11 +293,22 @@ export default function TasksTab({
                 />
               </div>
 
-              {/* 하위 업무 */}
+              {/* 하위 업무 — 완료된 건 기본으로 접는다 */}
               <div className="pl-4">
-                {sorted.map((kid) => (
+                {openKids.map((kid) => (
                   <TaskRow key={kid.id} {...rowProps(kid)} />
                 ))}
+
+                {showDone && doneKids.map((kid) => <TaskRow key={kid.id} {...rowProps(kid)} />)}
+
+                {kidsDone > 0 && (
+                  <button
+                    onClick={() => toggleDone(top.id)}
+                    className="text-[11.5px] text-[#aaaaaa] hover:text-[#0f0f0f] transition-colors py-1.5 mr-4"
+                  >
+                    {showDone ? `완료 ${kidsDone}건 접기` : `완료 ${kidsDone}건 펼치기`}
+                  </button>
+                )}
 
                 {addingSubFor === top.id ? (
                   <div className="flex items-center gap-2 py-2">
@@ -299,9 +358,7 @@ export default function TasksTab({
               </div>
             </div>
           );
-        })}
-    </div>
-  );
+  }
 }
 
 function TaskRow({

@@ -10,6 +10,8 @@ export type Task = {
   date: string; // 등록일 (빈 값 허용)
   /** 대주제(부모) 업무의 id. 없으면 그 자체가 대주제이거나 단독 업무. */
   parentId?: string;
+  /** 완료로 바뀐 시각(ISO). 완료 목록을 최근 순으로 세울 때 쓴다. 되돌리면 지운다. */
+  doneAt?: string;
 };
 
 /** pinnedAt: 고정한 시각(ms). 없으면 고정 안 된 항목. */
@@ -74,6 +76,7 @@ export const STATUS_COLOR: Record<Status, string> = {
 };
 
 export const PRIORITY_LABEL: Record<Priority, string> = { high: "HIGH", mid: "MID", low: "LOW" };
+export const PRIORITY_ORDER: Record<Priority, number> = { high: 0, mid: 1, low: 2 };
 export const PRIORITY_COLOR: Record<Priority, string> = {
   high: "#c84b31",
   mid: "#d97706",
@@ -140,6 +143,57 @@ export function overall(p: Project) {
   const leaves = leafTasks(p.tasks);
   if (!leaves.length) return 0;
   return Math.round(leaves.reduce((a, t) => a + taskProgress(t), 0) / leaves.length);
+}
+
+/** 완료된 날짜(YYYY-MM-DD). 완료 시각이 없는 예전 데이터는 등록일로 대신한다. */
+export function doneDay(t: Task) {
+  return (t.doneAt || t.date || "").slice(0, 10);
+}
+
+/** 완료로 바꿀 때 남길 값. 되돌릴 때는 doneAt 을 지운다. */
+export function doneStamp(status: Status): Pick<Task, "doneAt"> {
+  return status === "done" ? { doneAt: new Date().toISOString() } : { doneAt: undefined };
+}
+
+/**
+ * 업무 정렬. 동률일 때는 등록 순서(배열 순서)를 따른다.
+ *   · 미완료: 진행률 높은 순 → 중요도 → 등록순
+ *   · 완료  : 최근에 끝낸 순 → 중요도 → 등록순
+ */
+export function sortTasks(list: Task[], done: boolean): Task[] {
+  return list
+    .map((task, i) => ({ task, i }))
+    .sort((a, b) => {
+      if (done) {
+        const d = doneDay(b.task).localeCompare(doneDay(a.task));
+        if (d !== 0) return d;
+      } else {
+        const p = taskProgress(b.task) - taskProgress(a.task);
+        if (p !== 0) return p;
+      }
+      const pr = PRIORITY_ORDER[a.task.priority] - PRIORITY_ORDER[b.task.priority];
+      if (pr !== 0) return pr;
+      return a.i - b.i;
+    })
+    .map((x) => x.task);
+}
+
+/** 대주제의 중요도는 하위 업무 중 가장 높은 것을 쓴다 */
+export function groupPriority(tasks: Task[], parentId: string): Priority {
+  const kids = childrenOf(tasks, parentId);
+  if (!kids.length) return "mid";
+  return kids.reduce<Priority>(
+    (best, t) => (PRIORITY_ORDER[t.priority] < PRIORITY_ORDER[best] ? t.priority : best),
+    "low",
+  );
+}
+
+/** 대주제의 완료일은 하위 업무 중 가장 늦게 끝난 날 */
+export function groupDoneDay(tasks: Task[], parentId: string) {
+  return childrenOf(tasks, parentId).reduce(
+    (latest, t) => (doneDay(t) > latest ? doneDay(t) : latest),
+    "",
+  );
 }
 
 /**
