@@ -92,13 +92,87 @@ export const PALETTE: Array<{ color: string; colorBg: string }> = [
   { color: "#0e7490", colorBg: "#eff9fb" },
 ];
 
+/**
+ * 사이드바의 주간일지 화면을 가리키는 값.
+ * view 는 프로젝트 id 를 담는 자리라 겹치면 안 되는데, uid() 는 영숫자만 만들어 밑줄이 섞일 수 없다.
+ */
+export const WEEKLY_VIEW = "__weekly__";
+
 export function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function today() {
-  const d = new Date();
+/** Date → "YYYY-MM-DD" (이 PC 시간대 기준) */
+export function fmtDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function today() {
+  return fmtDate(new Date());
+}
+
+/** "YYYY-MM-DD" 에서 n 일 뒤(음수면 앞) 날짜 */
+export function addDays(dateStr: string, n: number) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return fmtDate(d);
+}
+
+/**
+ * 한 주는 월요일에 시작해 일요일에 끝난다.
+ * weekStart("2026-09-06") = "2026-08-31"  (일요일은 그 주의 마지막 날)
+ */
+export function weekStart(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00");
+  const dow = (d.getDay() + 6) % 7; // 월=0 … 일=6
+  d.setDate(d.getDate() - dow);
+  return fmtDate(d);
+}
+
+export function weekEnd(monday: string) {
+  return addDays(monday, 6);
+}
+
+const DOW = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** "9/1(화)" */
+export function dayLabel(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00");
+  return `${d.getMonth() + 1}/${d.getDate()}(${DOW[d.getDay()]})`;
+}
+
+/** "8/31(월) ~ 9/6(일)" */
+export function weekLabel(monday: string) {
+  return `${dayLabel(monday)} ~ ${dayLabel(weekEnd(monday))}`;
+}
+
+/** 이번 주를 0 으로 센 주 차이. 1 = 지난주, -1 = 다음 주 */
+export function weeksFromNow(monday: string) {
+  const a = new Date(weekStart(today()) + "T00:00:00").getTime();
+  const b = new Date(monday + "T00:00:00").getTime();
+  return Math.round((a - b) / (7 * 86400000));
+}
+
+export function weekRelLabel(monday: string) {
+  const n = weeksFromNow(monday);
+  if (n === 0) return "이번 주";
+  if (n === 1) return "지난주";
+  return n > 0 ? `${n}주 전` : `${-n}주 후`;
+}
+
+/**
+ * 주간일지가 다루는 첫 주 (2026-08-17 월요일).
+ * 그 이전에 끝낸 업무는 완료일이 남지 않은 게 많아 주 단위로 나눌 수 없다.
+ * 그래서 완료일 없는 업무와 이보다 앞선 업무는 모두 이 주에 모아 두고,
+ * 더 이전 주는 아예 고르지 못하게 한다.
+ */
+export const LOG_FIRST_WEEK = weekStart("2026-08-17");
+
+/** 그 완료일이 주간일지에서 잡히는 주 */
+export function logWeekOf(day: string) {
+  if (!day) return LOG_FIRST_WEEK;
+  const w = weekStart(day);
+  return w < LOG_FIRST_WEEK ? LOG_FIRST_WEEK : w;
 }
 
 /** 대주제(하위 업무를 가진 업무) 목록 */

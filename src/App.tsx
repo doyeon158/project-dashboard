@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import Overview from "./Overview";
 import ProjectHeader, { type TabKey } from "./ProjectHeader";
 import Sidebar from "./Sidebar";
+import WeeklyLog from "./WeeklyLog";
 import NotesTab from "./tabs/NotesTab";
 import RecordsTab from "./tabs/RecordsTab";
 import TasksTab from "./tabs/TasksTab";
 import { usePersistentState } from "./store";
 import { MONO } from "./ui";
 import type { Project } from "./types";
-import { PALETTE, today, uid } from "./types";
+import { PALETTE, WEEKLY_VIEW, today, uid } from "./types";
 
 const SIDEBAR_KEY = "project-dashboard-sidebar-collapsed";
 
@@ -19,7 +20,7 @@ const SIDEBAR_KEY = "project-dashboard-sidebar-collapsed";
 export default function App() {
   const { state, status, update } = usePersistentState();
 
-  // null = 한눈에 보기, 그 외에는 프로젝트 id
+  // null = 한눈에 보기, WEEKLY_VIEW = 주간일지, 그 외에는 프로젝트 id
   const [view, setView] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("tasks");
   // 사이드바 접힘은 화면 취향이라 데이터 파일이 아니라 브라우저에 기억한다
@@ -47,7 +48,8 @@ export default function App() {
     );
   }
 
-  const project = view ? state.projects.find((p) => p.id === view) || null : null;
+  const project =
+    view && view !== WEEKLY_VIEW ? state.projects.find((p) => p.id === view) || null : null;
 
   function patchProject(projectId: string, patch: Partial<Project>) {
     update((s) => ({
@@ -117,6 +119,18 @@ export default function App() {
                   setActiveTab("tasks");
                 }}
               />
+            </div>
+          </>
+        ) : view === WEEKLY_VIEW ? (
+          <>
+            <header className="border-b border-[#e5e5e3] px-8 py-5 flex-shrink-0 flex items-baseline gap-3">
+              <h1 className="text-[22px] font-semibold text-[#0f0f0f] tracking-tight">주간일지</h1>
+              <span className="text-[12px] text-[#aaaaaa]" style={MONO}>
+                월~일요일 기준 · 완료 업무 모아 보기
+              </span>
+            </header>
+            <div className="flex-1 overflow-y-auto">
+              <WeeklyLog state={state} />
             </div>
           </>
         ) : !project ? (

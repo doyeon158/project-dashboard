@@ -2,7 +2,7 @@ import Editable from "./Editable";
 import { MONO, SaveBadge } from "./ui";
 import type { SaveStatus } from "./store";
 import type { Profile, State } from "./types";
-import { leafTasks, overall, today } from "./types";
+import { WEEKLY_VIEW, leafTasks, overall, today } from "./types";
 
 /** 한눈에 보기 아이콘 (네 칸) */
 function OverviewIcon() {
@@ -12,6 +12,18 @@ function OverviewIcon() {
       <rect x="6.5" y="0" width="4.5" height="4.5" fill="#c0c0be" />
       <rect x="0" y="6.5" width="4.5" height="4.5" fill="#c0c0be" />
       <rect x="6.5" y="6.5" width="4.5" height="4.5" fill="#0f0f0f" />
+    </svg>
+  );
+}
+
+/** 주간일지 아이콘 (한 주가 담긴 달력) */
+function WeeklyIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 11 11" className="flex-shrink-0">
+      <rect x="0.5" y="1.5" width="10" height="9" stroke="#0f0f0f" strokeWidth="1" fill="none" />
+      <path d="M0.5 4.5h10" stroke="#0f0f0f" strokeWidth="1" />
+      <path d="M3 0.5v2M8 0.5v2" stroke="#0f0f0f" strokeWidth="1" strokeLinecap="round" />
+      <rect x="2" y="6" width="7" height="2" fill="#c0c0be" />
     </svg>
   );
 }
@@ -73,6 +85,16 @@ export default function Sidebar({
             }`}
           >
             <OverviewIcon />
+          </button>
+
+          <button
+            onClick={() => onSelect(WEEKLY_VIEW)}
+            title="주간일지"
+            className={`w-full py-2.5 flex justify-center transition-colors ${
+              view === WEEKLY_VIEW ? "bg-white border-r-2 border-r-[#0f0f0f]" : "hover:bg-white/60"
+            }`}
+          >
+            <WeeklyIcon />
           </button>
 
           {state.projects.map((p) => {
@@ -149,6 +171,24 @@ export default function Sidebar({
               }`}
             >
               한눈에 보기
+            </span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => onSelect(WEEKLY_VIEW)}
+          className={`w-full text-left px-4 py-2.5 transition-colors ${
+            view === WEEKLY_VIEW ? "bg-white border-r-2 border-r-[#0f0f0f]" : "hover:bg-white/60"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <WeeklyIcon />
+            <span
+              className={`text-[13.5px] font-medium ${
+                view === WEEKLY_VIEW ? "text-[#0f0f0f]" : "text-[#4a4a4a]"
+              }`}
+            >
+              주간일지
             </span>
           </div>
         </button>
