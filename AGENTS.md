@@ -21,12 +21,12 @@ npx tsc --noEmit
 | --- | --- |
 | `src/App.tsx` | 화면 배치 + 프로젝트 추가·삭제. 항목 편집은 각 탭이 담당 |
 | `src/Sidebar.tsx`, `src/ProjectHeader.tsx` | 왼쪽 목록 / 프로젝트 머리말 |
-| `src/tabs/*.tsx` | 업무·노트·기록 탭. 각 탭이 자기 폼 상태와 변경 로직을 가진다 |
+| `src/tabs/*.tsx` | 업무·노트·기록·자료함 탭. 각 탭이 자기 폼 상태와 변경 로직을 가진다 |
 | `src/Overview.tsx` | 한눈에 보기 |
 | `src/ui.tsx` | 공용 조각 (MONO, RADIUS, ProgressBar, PinButton, SaveBadge …) |
 | `src/store.ts` | 불러오기·자동 저장 훅 |
 | `src/types.ts` | 타입 + 계산 (진행률, D-day, 개요 파싱, 고정 정렬) |
-| `server.mjs` | 정적 서빙 + `/api/state` |
+| `server.mjs` | 정적 서빙 + `/api/state` + `/api/files`(자료함 목록·열기) |
 | `launch.mjs` | 설치·재빌드 판단 후 서버 시작 |
 
 ## 이 프로젝트에서 조심할 것
@@ -42,6 +42,12 @@ npx tsc --noEmit
   한 줄로 세워 처리한다. 임시 파일 이름도 매번 다르게 쓴다. 이 구조를 단순화하면 빠르게
   연속 수정할 때 마지막 변경이 사라진다.
 - **진행률 계산**: 대주제(하위 업무를 가진 업무)는 집계값이므로 개수·평균에서 제외한다(`leafTasks`).
+- **자료함(`/api/files`)은 PC 파일을 연다**: Host·Origin 을 확인해 이 PC 의 대시보드 화면에서 온
+  요청만 받고, 경로는 자료함 밖으로 못 나가게 막는다. 파일 열기는 경로를 명령줄이 아니라 환경변수로
+  cmd 에 넘긴다(이름의 `& % ^` 가 명령으로 해석되지 않게). 이 확인들을 빼면 아무 웹사이트나
+  자료함 목록을 읽고 파일을 열 수 있게 된다.
+- **`npm run format`(oxfmt 0.2) 은 쓰지 말 것**: 세미콜론을 지우고 import 사이에 빈 줄을 넣어
+  기존 스타일(Prettier 식, 100자)과 다르게 파일 전체를 바꾼다.
 
 ## 데이터
 

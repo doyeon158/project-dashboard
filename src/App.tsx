@@ -3,6 +3,7 @@ import Overview from "./Overview";
 import ProjectHeader, { type TabKey } from "./ProjectHeader";
 import Sidebar from "./Sidebar";
 import WeeklyLog from "./WeeklyLog";
+import FilesTab from "./tabs/FilesTab";
 import NotesTab from "./tabs/NotesTab";
 import RecordsTab from "./tabs/RecordsTab";
 import TasksTab from "./tabs/TasksTab";
@@ -168,6 +169,7 @@ export default function App() {
                   patch={(p) => patchProject(project.id, p)}
                 />
               )}
+              {activeTab === "files" && <FilesTab key={project.id} project={project} />}
             </div>
           </>
         )}

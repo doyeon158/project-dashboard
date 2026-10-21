@@ -3,8 +3,13 @@ import { MONO, ProgressBar, RADIUS } from "./ui";
 import type { Project } from "./types";
 import { PALETTE, leafTasks, overall } from "./types";
 
-export type TabKey = "tasks" | "notes" | "records";
-const TAB_LABEL: Record<TabKey, string> = { tasks: "업무", notes: "노트", records: "기록" };
+export type TabKey = "tasks" | "notes" | "records" | "files";
+const TAB_LABEL: Record<TabKey, string> = {
+  tasks: "업무",
+  notes: "노트",
+  records: "기록",
+  files: "자료함",
+};
 
 /** 프로젝트 화면 머리말 — 코드·이름·설명·역할 수정, 색상 선택, 탭 */
 export default function ProjectHeader({
@@ -21,7 +26,8 @@ export default function ProjectHeader({
   onTab: (t: TabKey) => void;
 }) {
   const pct = overall(project);
-  const counts: Record<TabKey, number> = {
+  // 자료함은 PC 폴더를 그때그때 읽으므로 개수를 띄우지 않는다
+  const counts: Partial<Record<TabKey, number>> = {
     // 대주제는 집계값이라 제외 (업무 탭 목록 헤더와 같은 기준)
     tasks: leafTasks(project.tasks).length,
     notes: project.notes.length,
@@ -113,7 +119,7 @@ export default function ProjectHeader({
       </div>
 
       <div className="flex gap-0">
-        {(["tasks", "notes", "records"] as TabKey[]).map((tab) => {
+        {(["tasks", "notes", "records", "files"] as TabKey[]).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
@@ -126,12 +132,14 @@ export default function ProjectHeader({
               }`}
             >
               {TAB_LABEL[tab]}
-              <span
-                className="ml-1.5 text-[11px]"
-                style={{ ...MONO, color: isActive ? project.color : "#aaaaaa" }}
-              >
-                {counts[tab]}
-              </span>
+              {counts[tab] !== undefined && (
+                <span
+                  className="ml-1.5 text-[11px]"
+                  style={{ ...MONO, color: isActive ? project.color : "#aaaaaa" }}
+                >
+                  {counts[tab]}
+                </span>
+              )}
             </button>
           );
         })}
