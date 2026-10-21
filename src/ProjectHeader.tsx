@@ -52,6 +52,24 @@ export default function ProjectHeader({
           <span className="text-[12px] text-[#737373]" style={MONO}>
             {pct}%
           </span>
+          {project.completedAt ? (
+            <button
+              onClick={() => patch({ completedAt: undefined })}
+              title={`${project.completedAt.slice(0, 10)} 완료 · 누르면 사이드바 목록으로 되돌립니다`}
+              className="text-[11.5px] font-medium px-2 py-0.5 text-[#2a7a4b] bg-[#f0faf4] hover:text-[#0f0f0f] hover:bg-[#e5e5e3] transition-colors"
+              style={{ borderRadius: RADIUS }}
+            >
+              완료 해제
+            </button>
+          ) : (
+            <button
+              onClick={() => patch({ completedAt: new Date().toISOString() })}
+              title="사이드바 아래 '완료됨' 묶음으로 옮깁니다"
+              className="text-[11.5px] text-[#aaaaaa] hover:text-[#2a7a4b] transition-colors"
+            >
+              프로젝트 완료
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="text-[11.5px] text-[#ccccca] hover:text-[#c84b31] transition-colors"

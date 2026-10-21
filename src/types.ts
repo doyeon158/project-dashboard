@@ -43,6 +43,11 @@ export type Project = {
   notes: Note[];
   tasks: Task[];
   records: Rec[];
+  /**
+   * 프로젝트를 완료로 표시한 시각(ISO). 있으면 사이드바 아래 '완료됨' 묶음으로 내려간다.
+   * 완료 해제하면 지운다. 배열 순서는 건드리지 않으므로 해제하면 원래 자리로 돌아온다.
+   */
+  completedAt?: string;
 };
 
 export type Deadline = { id: string; date: string; label: string };
