@@ -6,10 +6,12 @@
  *   · POST /api/state → 즉시 저장 (원자적 쓰기 + 일자별 백업)
  *   · GET  /api/files?code=QLC&path=하위/폴더 → 자료함 폴더 목록
  *   · POST /api/files/open {code, path}      → 그 파일을 Windows 기본 프로그램으로 열기
+ *   · GET  /api/servers  → 서버 관제실: data/servers.json 의 GPU·SoC 가 사용중인지 비어 있는지
  *   · POST /api/shutdown → 서버 종료 (코드가 바뀐 뒤 바로가기를 다시 누르면 새 서버가 부른다)
  *
  * 실행: run.bat 더블클릭  (또는  node server.mjs)
- * 데이터는 100% 이 PC 안에만 있습니다. 인터넷으로 나가지 않습니다.
+ * 데이터는 100% 이 PC 안에만 있습니다. 바깥으로 나가는 연결은 관제실이 data/servers.json 에
+ * 적힌 서버에 SSH 로 붙는 것 하나뿐입니다.
  */
 import http from "node:http";
 import fs from "node:fs";
@@ -303,6 +305,330 @@ async function handleFiles(req, res, urlPath) {
   return send(res, result[0], JSON.stringify(result[1]));
 }
 
+/* ───────────── 서버 관제실 ───────────── */
+
+/**
+ * 감시할 서버와 장치. 개인 환경이라 data/ 에 둔다 (깃에 안 올라감).
+ *   [{ "name": "5090", "ssh": "mrod-pub", "gpus": [0] },
+ *    { "name": "Qualcomm", "ssh": "V-Raptor-5F", "qaic": [0, 1, 2] }]
+ * ssh  : ~/.ssh/config 의 Host 별칭 (VS Code Remote-SSH 와 같은 것). 비밀번호 없이 키로 로그인돼야 한다.
+ * gpus : 지켜볼 nvidia-smi GPU 번호.  qaic : 지켜볼 qaic-util 장치(SoC) 번호.
+ */
+const SERVERS_FILE = path.join(DATA_DIR, "servers.json");
+const SSH_BIN = process.env.SSH_BIN || "ssh";
+const SAMPLE_EVERY_S = 5; // 원격에서 상태를 찍는 간격
+const IDLE_CLOSE_MS = 60_000; // 이만큼 아무도 화면을 안 보면 SSH 연결을 닫는다
+const RETRY_MS = 30_000; // 연결이 끊기면 이만큼 뒤에 다시 붙는다
+const STALE_MS = 20_000; // 이보다 오래된 값은 믿지 않는다 ('확인 중')
+// 프로세스가 안 보여도(다른 컨테이너 등) 메모리를 이만큼 쓰거나 사용률이 이 이상이면 사용중
+const BUSY_MEM_MIB = 1024;
+const BUSY_UTIL = 10;
+
+function intList(v) {
+  return Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n >= 0) : [];
+}
+
+async function readServerList() {
+  let raw;
+  try {
+    raw = await fsp.readFile(SERVERS_FILE, "utf-8");
+  } catch (e) {
+    if (e.code === "ENOENT") return [];
+    throw e;
+  }
+  const list = JSON.parse(raw);
+  if (!Array.isArray(list)) throw new Error("servers.json 은 [ … ] 배열이어야 합니다");
+  return list
+    .filter((s) => s && s.name)
+    .map((s) => ({
+      name: String(s.name),
+      ssh: String(s.ssh || ""),
+      gpus: intList(s.gpus),
+      qaic: intList(s.qaic),
+    }));
+}
+
+/*
+ * 원격에서 도는 스크립트. ssh … bash -s 의 표준입력으로 보낸다 (명령줄 따옴표 문제 없음).
+ * 한 번 붙으면 연결을 유지한 채 SAMPLE_EVERY_S 마다 상태를 찍고 @@END 로 끝을 알린다.
+ * 매번 새로 로그인하지 않으므로 원격 로그에 접속 기록이 쌓이지 않는다.
+ */
+const NVIDIA_SCRIPT = `
+echo @@GPU
+nvidia-smi --query-gpu=index,uuid,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits
+echo @@APPS
+a=$(nvidia-smi --query-compute-apps=gpu_uuid,pid,used_memory --format=csv,noheader,nounits)
+echo "$a"
+p=$(echo "$a" | awk -F', ' 'NF>1{printf "%s%s", s, $2; s=","}')
+echo @@PS
+[ -n "$p" ] && ps -o pid=,user:32=,etimes=,args= -p "$p" | cut -c1-300
+`;
+
+/*
+ * Qualcomm Cloud AI 100. qaic-util -q 는 0.4초쯤 걸린다. 필요한 줄만 남긴다.
+ * 장치를 잡고 있는 프로세스는 fuser 로 찾는다 (같은 계정 것만 보인다).
+ */
+const QAIC_SCRIPT = `
+echo @@QAIC
+Q=$(command -v qaic-util || echo /opt/qti-aic/tools/qaic-util)
+"$Q" -q 2>&1 | grep -E '^QID|Status:|Dev Link:|Dram (Total|Free):|Nsp (Total|Free):|Networks (Loaded|Active):'
+echo @@QPIDS
+for f in /dev/accel/accel*; do echo "$f $(fuser "$f" 2>/dev/null)"; done
+p=$(for f in /dev/accel/accel*; do fuser "$f" 2>/dev/null; done | tr -s ' ' '\\n' | grep -E '^[0-9]+$' | sort -u | paste -sd,)
+echo @@QPS
+[ -n "$p" ] && ps -o pid=,user:32=,etimes=,args= -p "$p" | cut -c1-300
+`;
+
+function remoteScript(cfg) {
+  const body = [cfg.gpus.length ? NVIDIA_SCRIPT : "", cfg.qaic.length ? QAIC_SCRIPT : ""];
+  return `while :; do\n${body.join("\n")}\necho @@END\nsleep ${SAMPLE_EVERY_S}\ndone\n`;
+}
+
+/** "@@이름" 줄로 나뉜 한 번치 출력을 { 이름: [줄…] } 로 */
+function sections(block) {
+  const out = {};
+  let cur = null;
+  for (const line of block.split(/\r?\n/)) {
+    if (line.startsWith("@@")) out[(cur = line.slice(2).trim())] = [];
+    else if (cur && line.trim()) out[cur].push(line);
+  }
+  return out;
+}
+
+const csv = (line) => line.split(",").map((s) => s.trim());
+// "31391744 KB" 처럼 단위가 붙어도 앞 숫자를 읽는다. [N/A] 등은 0
+const num = (s) => (Number.isFinite(parseFloat(s)) ? parseFloat(s) : 0);
+
+/** ps -o pid=,user=,etimes=,args= 출력 → pid 별 { user, secs, cmd } */
+function psTable(lines = []) {
+  const procs = new Map();
+  for (const line of lines) {
+    const m = line.trim().match(/^(\d+)\s+(\S+)\s+(\d+)\s+(.*)$/);
+    if (m) procs.set(m[1], { user: m[2], secs: Number(m[3]), cmd: m[4] });
+  }
+  return procs;
+}
+
+function nvidiaUnits(sec, wanted) {
+  const procs = psTable(sec.PS);
+  const apps = (sec.APPS || []).map(csv).filter((a) => a.length >= 3);
+  const gpus = new Map((sec.GPU || []).map(csv).map((g) => [Number(g[0]), g]));
+  return wanted.map((idx) => {
+    const g = gpus.get(idx);
+    if (!g) return { id: `GPU${idx}`, busy: null, error: "GPU 정보를 못 읽음" };
+    const [, uuid, util, used, total] = g;
+    const ps = apps
+      .filter((a) => a[0] === uuid)
+      .map(([, pid, mem]) => ({ pid, mem: num(mem), ...procs.get(pid) }));
+    return {
+      id: `GPU${idx}`,
+      busy: ps.length > 0 || num(used) >= BUSY_MEM_MIB || num(util) >= BUSY_UTIL,
+      util: num(util),
+      memUsed: num(used),
+      memTotal: num(total),
+      procs: ps,
+    };
+  });
+}
+
+/**
+ * NSP 코어가 하나라도 잡혀 있거나 모델(network)이 올라가 있으면 사용중.
+ * 요청을 처리하지 않고 대기 중인 서빙 프로세스도 SoC 를 점유하므로 다른 테스트를 못 돌린다.
+ */
+function qaicUnits(sec, wanted) {
+  const devs = new Map();
+  let cur = null;
+  for (const line of sec.QAIC || []) {
+    const q = line.match(/^QID\s+(\d+)/);
+    if (q) devs.set(Number(q[1]), (cur = {}));
+    else if (cur && line.includes(":")) {
+      const i = line.indexOf(":");
+      cur[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+  }
+  const pidsByDev = new Map();
+  for (const line of sec.QPIDS || []) {
+    const [dev, ...rest] = line.trim().split(/\s+/);
+    pidsByDev.set(dev, rest.map((p) => p.replace(/\D/g, "")).filter(Boolean));
+  }
+  const procs = psTable(sec.QPS);
+  return wanted.map((qid) => {
+    const id = `SoC${qid}`;
+    const d = devs.get(qid);
+    if (!d) return { id, busy: null, error: "SoC 정보를 못 읽음" };
+    if (d.Status !== "Ready") return { id, busy: null, error: `상태 ${d.Status || "알 수 없음"}` };
+    const nspTotal = num(d["Nsp Total"]);
+    const nspUsed = nspTotal - num(d["Nsp Free"]);
+    const loaded = num(d["Networks Loaded"]);
+    const active = num(d["Networks Active"]);
+    const all = (pidsByDev.get(d["Dev Link"]) || []).map((pid) => ({ pid, ...procs.get(pid) }));
+    // multiprocessing 으로 띄운 하위 프로세스는 빼고 본체만 (다 빠지면 그대로)
+    const main = all.filter((p) => !/multiprocessing/.test(p.cmd || ""));
+    return {
+      id,
+      busy: nspUsed > 0 || loaded > 0 || active > 0,
+      memUsed: Math.round((num(d["Dram Total"]) - num(d["Dram Free"])) / 1024),
+      memTotal: Math.round(num(d["Dram Total"]) / 1024),
+      detail: `NSP ${nspUsed}/${nspTotal} · 모델 ${active}개 실행 (${loaded}개 적재)`,
+      procs: main.length ? main : all,
+    };
+  });
+}
+
+/** ssh 가 남긴 오류 메시지를 사람이 읽을 말로 */
+function sshError(stderr) {
+  const t = stderr.trim();
+  if (/Permission denied/i.test(t)) return "키 로그인 안 됨 (비밀번호로만 접속 가능)";
+  if (/timed out/i.test(t)) return "접속 시간 초과";
+  if (/Could not resolve hostname/i.test(t)) return "주소를 찾을 수 없음";
+  if (/Connection refused/i.test(t)) return "접속 거부";
+  if (/Host key verification failed/i.test(t)) return "호스트 키 확인 실패 (VS Code 로 한 번 접속해 볼 것)";
+  return t.split(/\r?\n/).filter(Boolean).pop() || "연결이 끊김";
+}
+
+/** 서버 하나를 지켜보는 SSH 연결. 화면이 보고 있는 동안만 연결을 유지한다 */
+class Monitor {
+  constructor(cfg) {
+    this.cfg = cfg;
+    this.child = null;
+    this.retryAt = 0;
+    this.wantedAt = 0;
+    this.units = [];
+    this.updatedAt = 0;
+    this.error = "";
+    this.lastRemoteErr = "";
+    this.state = "checking";
+    this.since = 0;
+  }
+
+  /** 화면이 물어볼 때마다 부른다. 연결이 없으면 붙는다 */
+  touch() {
+    this.wantedAt = Date.now();
+    if (!this.child && Date.now() >= this.retryAt) this.start();
+  }
+
+  start() {
+    if (!this.cfg.ssh) {
+      this.error = "ssh 별칭이 없음";
+      this.retryAt = Infinity;
+      return;
+    }
+    // prettier-ignore
+    const args = [
+      "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
+      "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=2",
+      this.cfg.ssh, "bash", "-s",
+    ];
+    const child = spawn(SSH_BIN, args, { windowsHide: true });
+    this.child = child;
+    let out = "";
+    let err = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (d) => {
+      out += d;
+      let i;
+      while ((i = out.indexOf("@@END")) >= 0) {
+        this.onSample(out.slice(0, i));
+        out = out.slice(i + 5);
+      }
+    });
+    child.stderr.on("data", (d) => {
+      err = (err + d).slice(-4000);
+      this.lastRemoteErr = err.trim().split(/\r?\n/).pop() || "";
+    });
+    child.on("error", (e) => {
+      this.error = e.code === "ENOENT" ? "ssh 프로그램을 찾을 수 없음" : e.message;
+    });
+    child.on("close", () => {
+      if (this.child !== child) return; // 일부러 닫은 연결
+      this.child = null;
+      this.retryAt = Date.now() + RETRY_MS;
+      this.error ||= sshError(err);
+      this.setState("offline");
+    });
+    child.stdin.on("error", () => {}); // 연결이 먼저 끊기면 쓰기 오류가 난다
+    child.stdin.write(remoteScript(this.cfg)); // 표준입력은 닫지 않는다 (닫으면 원격 bash 가 끝남)
+  }
+
+  stop() {
+    const child = this.child;
+    this.child = null;
+    child?.kill();
+  }
+
+  onSample(block) {
+    const sec = sections(block);
+    const units = [
+      ...(this.cfg.gpus.length ? nvidiaUnits(sec, this.cfg.gpus) : []),
+      ...(this.cfg.qaic.length ? qaicUnits(sec, this.cfg.qaic) : []),
+    ];
+    // 명령이 없거나 권한이 없으면 원격 오류 메시지를 대신 보여준다
+    for (const u of units) if (u.busy === null && this.lastRemoteErr) u.error = this.lastRemoteErr;
+    this.units = units;
+    this.updatedAt = Date.now();
+    this.error = "";
+    const known = units.filter((u) => u.busy !== null);
+    if (!known.length) this.setState("unknown");
+    else this.setState(known.some((u) => u.busy) ? "busy" : "free");
+  }
+
+  setState(state) {
+    if (state !== this.state) {
+      this.state = state;
+      this.since = Date.now();
+    }
+  }
+
+  report() {
+    const fresh = Date.now() - this.updatedAt < STALE_MS;
+    let state = this.state;
+    if (this.child && !fresh) state = "checking"; // 붙는 중이거나 응답이 늦다
+    return {
+      name: this.cfg.name,
+      ssh: this.cfg.ssh,
+      state,
+      error: state === "offline" || state === "unknown" ? this.error : "",
+      units: state === "offline" ? [] : this.units,
+      updatedAt: this.updatedAt,
+      since: this.since,
+    };
+  }
+}
+
+const monitors = new Map(); // 설정(JSON) → Monitor. servers.json 이 바뀌면 새로 만든다
+
+// 아무도 안 보는 연결은 닫는다 (원격에 세션을 붙잡아 두지 않게)
+setInterval(() => {
+  for (const m of monitors.values()) {
+    if (m.child && Date.now() - m.wantedAt > IDLE_CLOSE_MS) {
+      m.stop();
+      m.retryAt = 0;
+      m.updatedAt = 0;
+    }
+  }
+}, 15_000).unref();
+
+async function serverReport() {
+  const list = await readServerList();
+  const keys = new Set();
+  const out = list.map((cfg) => {
+    const key = JSON.stringify(cfg);
+    keys.add(key);
+    if (!monitors.has(key)) monitors.set(key, new Monitor(cfg));
+    const m = monitors.get(key);
+    m.touch();
+    return m.report();
+  });
+  for (const [key, m] of monitors) {
+    if (!keys.has(key)) {
+      m.stop();
+      monitors.delete(key);
+    }
+  }
+  return out;
+}
+
 async function serveStatic(res, urlPath) {
   if (!fs.existsSync(path.join(DIST, "index.html"))) {
     return send(
@@ -346,6 +672,15 @@ async function handler(req, res) {
 
     if (urlPath === "/api/files" || urlPath === "/api/files/open") {
       return await handleFiles(req, res, urlPath);
+    }
+
+    if (urlPath === "/api/servers" && req.method === "GET") {
+      if (!isLocalRequest(req)) return send(res, 403, JSON.stringify({ ok: false }));
+      try {
+        return send(res, 200, JSON.stringify({ ok: true, servers: await serverReport() }));
+      } catch (e) {
+        return send(res, 200, JSON.stringify({ ok: false, error: `servers.json: ${e.message}` }));
+      }
     }
 
     if (urlPath === "/api/health") {

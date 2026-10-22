@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Overview from "./Overview";
 import ProjectHeader, { type TabKey } from "./ProjectHeader";
+import ServerBar from "./ServerBar";
 import Sidebar from "./Sidebar";
 import WeeklyLog from "./WeeklyLog";
 import FilesTab from "./tabs/FilesTab";
@@ -86,94 +87,97 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-full bg-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <Sidebar
-        state={state}
-        view={view}
-        status={status}
-        collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((v) => !v)}
-        onSelect={setView}
-        onAddProject={addProject}
-        onPatchProfile={(p) =>
-          update((s) => ({ ...s, profile: { ...s.profile, ...p } }))
-        }
-      />
+    <div className="flex flex-col h-full bg-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <ServerBar />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar
+          state={state}
+          view={view}
+          status={status}
+          collapsed={collapsed}
+          onToggleCollapsed={() => setCollapsed((v) => !v)}
+          onSelect={setView}
+          onAddProject={addProject}
+          onPatchProfile={(p) =>
+            update((s) => ({ ...s, profile: { ...s.profile, ...p } }))
+          }
+        />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {view === null ? (
-          <>
-            <header className="border-b border-[#e5e5e3] px-8 py-5 flex-shrink-0 flex items-baseline gap-3">
-              <h1 className="text-[22px] font-semibold text-[#0f0f0f] tracking-tight">
-                한눈에 보기
-              </h1>
-              <span className="text-[12px] text-[#aaaaaa]" style={MONO}>
-                {today()}
-              </span>
-            </header>
-            <div className="flex-1 overflow-y-auto">
-              <Overview
-                state={state}
-                update={update}
-                onOpenProject={(id) => {
-                  setView(id);
-                  setActiveTab("tasks");
-                }}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {view === null ? (
+            <>
+              <header className="border-b border-[#e5e5e3] px-8 py-5 flex-shrink-0 flex items-baseline gap-3">
+                <h1 className="text-[22px] font-semibold text-[#0f0f0f] tracking-tight">
+                  한눈에 보기
+                </h1>
+                <span className="text-[12px] text-[#aaaaaa]" style={MONO}>
+                  {today()}
+                </span>
+              </header>
+              <div className="flex-1 overflow-y-auto">
+                <Overview
+                  state={state}
+                  update={update}
+                  onOpenProject={(id) => {
+                    setView(id);
+                    setActiveTab("tasks");
+                  }}
+                />
+              </div>
+            </>
+          ) : view === WEEKLY_VIEW ? (
+            <>
+              <header className="border-b border-[#e5e5e3] px-8 py-5 flex-shrink-0 flex items-baseline gap-3">
+                <h1 className="text-[22px] font-semibold text-[#0f0f0f] tracking-tight">주간일지</h1>
+                <span className="text-[12px] text-[#aaaaaa]" style={MONO}>
+                  월~일요일 기준 · 완료 업무 모아 보기
+                </span>
+              </header>
+              <div className="flex-1 overflow-y-auto">
+                <WeeklyLog state={state} />
+              </div>
+            </>
+          ) : !project ? (
+            <div className="flex-1 flex items-center justify-center text-[13px] text-[#aaaaaa]">
+              프로젝트를 찾을 수 없습니다.
+            </div>
+          ) : (
+            <>
+              <ProjectHeader
+                project={project}
+                patch={(p) => patchProject(project.id, p)}
+                onDelete={() => deleteProject(project)}
+                activeTab={activeTab}
+                onTab={setActiveTab}
               />
-            </div>
-          </>
-        ) : view === WEEKLY_VIEW ? (
-          <>
-            <header className="border-b border-[#e5e5e3] px-8 py-5 flex-shrink-0 flex items-baseline gap-3">
-              <h1 className="text-[22px] font-semibold text-[#0f0f0f] tracking-tight">주간일지</h1>
-              <span className="text-[12px] text-[#aaaaaa]" style={MONO}>
-                월~일요일 기준 · 완료 업무 모아 보기
-              </span>
-            </header>
-            <div className="flex-1 overflow-y-auto">
-              <WeeklyLog state={state} />
-            </div>
-          </>
-        ) : !project ? (
-          <div className="flex-1 flex items-center justify-center text-[13px] text-[#aaaaaa]">
-            프로젝트를 찾을 수 없습니다.
-          </div>
-        ) : (
-          <>
-            <ProjectHeader
-              project={project}
-              patch={(p) => patchProject(project.id, p)}
-              onDelete={() => deleteProject(project)}
-              activeTab={activeTab}
-              onTab={setActiveTab}
-            />
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === "tasks" && (
-                <TasksTab
-                  key={project.id}
-                  project={project}
-                  patch={(p) => patchProject(project.id, p)}
-                />
-              )}
-              {activeTab === "notes" && (
-                <NotesTab
-                  key={project.id}
-                  project={project}
-                  patch={(p) => patchProject(project.id, p)}
-                />
-              )}
-              {activeTab === "records" && (
-                <RecordsTab
-                  key={project.id}
-                  project={project}
-                  patch={(p) => patchProject(project.id, p)}
-                />
-              )}
-              {activeTab === "files" && <FilesTab key={project.id} project={project} />}
-            </div>
-          </>
-        )}
-      </main>
+              <div className="flex-1 overflow-y-auto">
+                {activeTab === "tasks" && (
+                  <TasksTab
+                    key={project.id}
+                    project={project}
+                    patch={(p) => patchProject(project.id, p)}
+                  />
+                )}
+                {activeTab === "notes" && (
+                  <NotesTab
+                    key={project.id}
+                    project={project}
+                    patch={(p) => patchProject(project.id, p)}
+                  />
+                )}
+                {activeTab === "records" && (
+                  <RecordsTab
+                    key={project.id}
+                    project={project}
+                    patch={(p) => patchProject(project.id, p)}
+                  />
+                )}
+                {activeTab === "files" && <FilesTab key={project.id} project={project} />}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

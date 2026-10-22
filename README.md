@@ -66,6 +66,7 @@ Windows 의 `localhost` 는 IPv6(`::1`)로 먼저 풀린다. 그래서 서버는
 | 실제 데이터 | `data/dashboard-data.json` |
 | 자동 백업 | `data/backup/dashboard-data.YYYY-MM-DD.json` (그날 첫 저장 시 1회) |
 | 자료함 | `바탕화면\자료함\<프로젝트 코드>\` (환경변수 `FILES_ROOT` 로 바꿀 수 있음) |
+| 서버 관제실 목록 | `data/servers.json` (없으면 관제실 띠에 안내만 나옴) |
 
 - 화면에서 뭔가 고치면 0.4초 뒤 자동 저장됩니다. 사이드바 아래 **저장됨 / 저장 중** 표시로 확인.
 - 저장은 임시 파일에 쓴 뒤 교체하는 방식이라, 저장 중에 창을 닫아도 파일이 깨지지 않습니다.
@@ -75,6 +76,28 @@ Windows 의 `localhost` 는 IPv6(`::1`)로 먼저 풀린다. 그래서 서버는
 
 ## 화면 구성
 
+- **서버 관제실** — 모든 화면 맨 위에 고정된 띠. 테스트용 GPU·SoC 가 지금 **사용중**(테스트가
+  돌고 있음)인지 **비어있음**(끝났거나 바로 쓸 수 있음)인지 5초 간격으로 보여준다.
+  사용중이면 사용률·메모리·누가 쓰는지가 같이 나오고, 마우스를 올리면 장치별 상태와 프로세스
+  (명령·몇 분째 도는지)·언제부터 그 상태인지가 나온다. 장치 번호는 사용중이면 주황, 비었으면 초록.
+  - 서버 목록은 `data/servers.json`. `ssh` 에는 `~/.ssh/config` 의 Host 별칭을 적는다
+    (VS Code Remote-SSH 와 같은 것). `gpus` 는 nvidia-smi GPU 번호, `qaic` 는 Qualcomm
+    qaic-util 장치(SoC) 번호.
+
+    ```json
+    [
+      { "name": "5090", "ssh": "mrod-pub", "gpus": [0] },
+      { "name": "Qualcomm", "ssh": "V-Raptor-5F", "qaic": [0, 1, 2] }
+    ]
+    ```
+
+  - 사용중 판단: GPU 는 프로세스가 있거나 메모리 1GB 이상·사용률 10% 이상. SoC 는 NSP 코어가
+    하나라도 잡혀 있거나 모델이 올라가 있으면 (요청 없이 대기 중인 서빙도 SoC 를 점유하므로 사용중).
+  - **비밀번호 없이 키로 로그인돼야 한다.** 안 되면 띠에 "키 로그인 안 됨" 이 뜬다. 그 서버에 접속한
+    VS Code 터미널에서 이 PC 의 `~/.ssh/id_ed25519.pub` 내용을 `~/.ssh/authorized_keys` 에 넣으면 된다.
+  - 서버마다 SSH 연결을 하나 열어 두고 원격에서 5초마다 상태를 찍게 한다 (매번 로그인하지 않으므로
+    원격 로그가 쌓이지 않음). 대시보드 탭을 1분 넘게 안 보면 연결을 닫고, 다시 보면 붙는다.
+  - "언제부터"는 대시보드 서버가 켜진 뒤 기준이다 (서버를 다시 켜면 그때부터 다시 센다).
 - **한눈에 보기** — 요약 타일(프로젝트 수·평균 진행률·미완료 업무·다음 마감),
   D-day 일정, 프로젝트 현황 카드, 전 프로젝트 우선 처리 업무, 메모 타임라인.
   프로젝트 카드의 이름·설명·역할은 클릭해서 바로 수정.
@@ -129,6 +152,7 @@ npm run dev
 | `src/App.tsx` | 화면 배치와 프로젝트 추가·삭제만. 항목 편집 로직은 각 탭에 있다 |
 | `src/Sidebar.tsx` | 왼쪽 목록 (한눈에 보기 / 프로젝트 / 프로필·저장 상태) |
 | `src/ProjectHeader.tsx` | 프로젝트 머리말 — 코드·이름·설명·역할 수정, 색상, 탭 |
+| `src/ServerBar.tsx` | 맨 위 서버 관제실 띠 — GPU·SoC 사용중/비어있음을 5초마다 물어 표시 |
 | `src/tabs/TasksTab.tsx` | 업무 탭 — 대주제/하위 업무 목록과 개요 등록 |
 | `src/tabs/NotesTab.tsx` | 노트 탭 |
 | `src/tabs/RecordsTab.tsx` | 기록 탭 — 양식/무양식 |
@@ -138,7 +162,7 @@ npm run dev
 | `src/store.ts` | 불러오기·자동 저장 (한 번에 하나씩 순서대로, localStorage 대체 포함) |
 | `src/Editable.tsx` | 클릭해서 고치는 텍스트 (한글 IME 안전한 input 방식) |
 | `src/types.ts` | 데이터 타입과 계산 (진행률, D-day, 개요 파싱, 고정 정렬) |
-| `server.mjs` | 정적 파일 서빙 + `/api/state` 읽기/쓰기 + `/api/files` 자료함 목록·열기 (의존성 0) |
+| `server.mjs` | 정적 파일 서빙 + `/api/state` 읽기/쓰기 + `/api/files` 자료함 + `/api/servers` 관제실 (의존성 0) |
 | `launch.mjs` | 실행 준비: 패키지 설치·재빌드 판단 후 서버 시작 |
 | `run.bat` | 바로가기가 부르는 진입점 (한글은 cmd 에서 깨지므로 ASCII 로만 작성) |
 | `create-shortcut.bat` + `tools/create-shortcut.ps1` | 바탕화면 바로가기 생성 |

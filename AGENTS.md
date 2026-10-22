@@ -21,12 +21,13 @@ npx tsc --noEmit
 | --- | --- |
 | `src/App.tsx` | 화면 배치 + 프로젝트 추가·삭제. 항목 편집은 각 탭이 담당 |
 | `src/Sidebar.tsx`, `src/ProjectHeader.tsx` | 왼쪽 목록 / 프로젝트 머리말 |
+| `src/ServerBar.tsx` | 모든 화면 맨 위 서버 관제실 띠 — GPU·SoC 사용중/비어있음 (`/api/servers`, 목록은 `data/servers.json`) |
 | `src/tabs/*.tsx` | 업무·노트·기록·자료함 탭. 각 탭이 자기 폼 상태와 변경 로직을 가진다 |
 | `src/Overview.tsx` | 한눈에 보기 |
 | `src/ui.tsx` | 공용 조각 (MONO, RADIUS, ProgressBar, PinButton, SaveBadge …) |
 | `src/store.ts` | 불러오기·자동 저장 훅 |
 | `src/types.ts` | 타입 + 계산 (진행률, D-day, 개요 파싱, 고정 정렬) |
-| `server.mjs` | 정적 서빙 + `/api/state` + `/api/files`(자료함 목록·열기) |
+| `server.mjs` | 정적 서빙 + `/api/state` + `/api/files`(자료함) + `/api/servers`(관제실) |
 | `launch.mjs` | 설치·재빌드 판단 후 서버 시작 |
 
 ## 이 프로젝트에서 조심할 것
@@ -46,6 +47,11 @@ npx tsc --noEmit
   요청만 받고, 경로는 자료함 밖으로 못 나가게 막는다. 파일 열기는 경로를 명령줄이 아니라 환경변수로
   cmd 에 넘긴다(이름의 `& % ^` 가 명령으로 해석되지 않게). 이 확인들을 빼면 아무 웹사이트나
   자료함 목록을 읽고 파일을 열 수 있게 된다.
+- **관제실은 서버마다 SSH 연결 하나를 유지한다** (`Monitor`, `ssh … bash -s` 에 스크립트를
+  표준입력으로 보냄). 요청마다 새로 로그인하게 바꾸지 말 것 — 원격 로그·세션이 쌓이고 느려진다.
+  화면이 1분 넘게 안 물으면 연결을 닫는다(`IDLE_CLOSE_MS`). 원격 스크립트 출력은 `@@이름` 줄로
+  구역을 나누고 `@@END` 로 한 번치를 끝낸다. Git Bash 에서 시험할 때는 `MSYS_NO_PATHCONV=1`
+  (안 그러면 `/opt/...` 인자가 Windows 경로로 바뀐다).
 - **`npm run format`(oxfmt 0.2) 은 쓰지 말 것**: 세미콜론을 지우고 import 사이에 빈 줄을 넣어
   기존 스타일(Prettier 식, 100자)과 다르게 파일 전체를 바꾼다.
 
