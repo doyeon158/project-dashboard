@@ -52,6 +52,9 @@ npx tsc --noEmit
   화면이 1분 넘게 안 물으면 연결을 닫는다(`IDLE_CLOSE_MS`). 원격 스크립트 출력은 `@@이름` 줄로
   구역을 나누고 `@@END` 로 한 번치를 끝낸다. Git Bash 에서 시험할 때는 `MSYS_NO_PATHCONV=1`
   (안 그러면 `/opt/...` 인자가 Windows 경로로 바뀐다).
+  장치를 하나도 못 읽는 상태(`unknown`)면 연결을 끊고 `RETRY_MS` 뒤 새로 로그인한다 — SDK 교체로
+  초기화된 qaic 그룹 권한은 새 로그인에서만 반영되기 때문. 시험용 서버 목록은 `SERVERS_FILE`
+  환경변수로 따로 줄 수 있다 (실제 `data/servers.json` 을 건드리지 않고).
 - **`npm run format`(oxfmt 0.2) 은 쓰지 말 것**: 세미콜론을 지우고 import 사이에 빈 줄을 넣어
   기존 스타일(Prettier 식, 100자)과 다르게 파일 전체를 바꾼다.
 

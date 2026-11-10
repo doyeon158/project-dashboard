@@ -314,7 +314,7 @@ async function handleFiles(req, res, urlPath) {
  * ssh  : ~/.ssh/config 의 Host 별칭 (VS Code Remote-SSH 와 같은 것). 비밀번호 없이 키로 로그인돼야 한다.
  * gpus : 지켜볼 nvidia-smi GPU 번호.  qaic : 지켜볼 qaic-util 장치(SoC) 번호.
  */
-const SERVERS_FILE = path.join(DATA_DIR, "servers.json");
+const SERVERS_FILE = process.env.SERVERS_FILE || path.join(DATA_DIR, "servers.json");
 const SSH_BIN = process.env.SSH_BIN || "ssh";
 const SAMPLE_EVERY_S = 5; // 원격에서 상태를 찍는 간격
 const IDLE_CLOSE_MS = 60_000; // 이만큼 아무도 화면을 안 보면 SSH 연결을 닫는다
@@ -371,7 +371,10 @@ echo @@PS
 const QAIC_SCRIPT = `
 echo @@QAIC
 Q=$(command -v qaic-util || echo /opt/qti-aic/tools/qaic-util)
-"$Q" -q 2>&1 | grep -E '^QID|Status:|Dev Link:|Dram (Total|Free):|Nsp (Total|Free):|Networks (Loaded|Active):'
+out=$("$Q" -q 2>&1)
+echo "$out" | grep -E '^QID|Status:|Dev Link:|Dram (Total|Free):|Nsp (Total|Free):|Networks (Loaded|Active):'
+# 장치가 하나도 안 읽히면 원인(권한 등)을 표준오류로 넘긴다 → 관제실에 그대로 표시
+echo "$out" | grep -q '^QID' || { echo "$out" | grep -iE "qaic.? group|privilege" | head -n 1; echo "$out" | tail -n 1; } >&2
 echo @@QPIDS
 for f in /dev/accel/accel*; do echo "$f $(fuser "$f" 2>/dev/null)"; done
 p=$(for f in /dev/accel/accel*; do fuser "$f" 2>/dev/null; done | tr -s ' ' '\\n' | grep -E '^[0-9]+$' | sort -u | paste -sd,)
@@ -475,6 +478,14 @@ function qaicUnits(sec, wanted) {
   });
 }
 
+/** 원격 명령이 남긴 오류 중 보여줄 한 줄. SDK 교체 뒤 권한 초기화는 원인을 바로 알 수 있게 */
+function remoteError(stderr) {
+  if (/not part of qaic group|Insufficient privileges|'qaic' group/i.test(stderr)) {
+    return "NPU 접근 권한 없음 (qaic 그룹) — SDK 교체 뒤 권한 복구 필요";
+  }
+  return stderr.trim().split(/\r?\n/).pop() || "";
+}
+
 /** ssh 가 남긴 오류 메시지를 사람이 읽을 말로 */
 function sshError(stderr) {
   const t = stderr.trim();
@@ -513,6 +524,7 @@ class Monitor {
       this.retryAt = Infinity;
       return;
     }
+    this.lastRemoteErr = "";
     // prettier-ignore
     const args = [
       "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
@@ -535,7 +547,7 @@ class Monitor {
     });
     child.stderr.on("data", (d) => {
       err = (err + d).slice(-4000);
-      this.lastRemoteErr = err.trim().split(/\r?\n/).pop() || "";
+      this.lastRemoteErr = remoteError(err);
     });
     child.on("error", (e) => {
       this.error = e.code === "ENOENT" ? "ssh 프로그램을 찾을 수 없음" : e.message;
@@ -567,10 +579,18 @@ class Monitor {
     for (const u of units) if (u.busy === null && this.lastRemoteErr) u.error = this.lastRemoteErr;
     this.units = units;
     this.updatedAt = Date.now();
-    this.error = "";
     const known = units.filter((u) => u.busy !== null);
-    if (!known.length) this.setState("unknown");
-    else this.setState(known.some((u) => u.busy) ? "busy" : "free");
+    if (known.length) {
+      this.error = "";
+      this.setState(known.some((u) => u.busy) ? "busy" : "free");
+      return;
+    }
+    this.setState("unknown");
+    this.error = this.lastRemoteErr || "장치 정보를 못 읽음";
+    // 그룹 권한은 로그인할 때 정해진다. SDK 교체로 qaic 권한이 초기화됐다가 복구돼도
+    // 이 연결로는 계속 못 읽으므로, 끊고 RETRY_MS 뒤에 새로 로그인한다
+    this.stop();
+    this.retryAt = Date.now() + RETRY_MS;
   }
 
   setState(state) {
