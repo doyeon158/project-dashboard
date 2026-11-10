@@ -93,8 +93,8 @@ export const PALETTE: Array<{ color: string; colorBg: string }> = [
   { color: "#c84b31", colorBg: "#fff4f1" },
   { color: "#2a7a4b", colorBg: "#f0faf4" },
   { color: "#7c3aed", colorBg: "#f5f0ff" },
-  { color: "#b45309", colorBg: "#fff8ed" },
-  { color: "#0e7490", colorBg: "#eff9fb" },
+  { color: "#ca8a04", colorBg: "#fefce8" }, // 짙은 노랑
+  { color: "#a8467a", colorBg: "#faf1f6" }, // 탁한 분홍 (2번 빨강과 갈리게 보라 쪽으로)
 ];
 
 /**
